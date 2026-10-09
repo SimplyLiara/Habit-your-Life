@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Tagwerk Planer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: schmale Kopfzeile mit vier Reitern; jede Ansicht ist eine ruhige Arbeitsfläche.
+   Zwei Signalfarben tragen Bedeutung: Tanne = privat, Beere = gemeinsam. */
+:root{
+  --bg:#edf2f0; --surface:#fafcfb; --sunk:#e2eae7; --line:#cfdad6;
+  --ink:#16302b; --muted:#5a706a;
+  --priv:#1f6f5c; --priv-soft:#d5ebe4;
+  --shared:#a92c63; --shared-soft:#f6dbe7;
+  --warn:#a4540b; --on-accent:#ffffff;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1816; --surface:#17221f; --sunk:#1f2d29; --line:#2e403b;
+  --ink:#e3eeea; --muted:#93aaa3;
+  --priv:#62c9ab; --priv-soft:#1d3d35;
+  --shared:#f08bb4; --shared-soft:#45202f;
+  --warn:#f0a95a; --on-accent:#0f1816; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1816; --surface:#17221f; --sunk:#1f2d29; --line:#2e403b;
+  --ink:#e3eeea; --muted:#93aaa3;
+  --priv:#62c9ab; --priv-soft:#1d3d35;
+  --shared:#f08bb4; --shared-soft:#45202f;
+  --warn:#f0a95a; --on-accent:#0f1816; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--body)}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:20px 56px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:1.35rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.6rem;font-weight:700;letter-spacing:-.015em}
+h3{font-size:1.05rem;font-weight:700}
+p{margin:0}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--priv);outline-offset:2px}
+.muted{color:var(--muted)} .small{font-size:.875rem}
+.num{font-variant-numeric:tabular-nums}
+
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;justify-content:space-between}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+nav.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:999px;flex-wrap:wrap}
+nav.tabs button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font-weight:600;color:var(--muted)}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+
+.notice{background:var(--sunk);border-radius:var(--r);padding:10px 14px;font-size:.9rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.view{display:flex;flex-direction:column;gap:16px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.spread{justify-content:space-between}
+
+input[type=text],input[type=date],input[type=time],textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;min-width:0;max-width:100%}
+textarea{resize:vertical;min-height:60px;width:100%}
+.grow{flex:1 1 180px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:600}
+.btn.primary{background:var(--priv);border-color:var(--priv);color:var(--on-accent)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:6px 8px;font-weight:500;font-size:.875rem}
+.btn.ghost:hover{color:var(--ink);background:var(--sunk)}
+.btn[data-armed]{color:var(--warn);font-weight:600}
+.seg{display:inline-flex;background:var(--sunk);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button,.seg label{border:0;background:transparent;border-radius:6px;padding:6px 12px;font-weight:600;font-size:.9rem;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"],.seg input:checked+label{background:var(--surface);color:var(--ink)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg input:focus-visible+label{outline:2px solid var(--priv);outline-offset:1px}
+.seg input:disabled+label{opacity:.45;cursor:not-allowed}
+label.field{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:600;color:var(--muted);min-width:0}
+
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.list>li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+ul.list>li:first-child{border-top:0}
+.li-main{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.empty{color:var(--muted);padding:8px 0}
+.check{flex:0 0 auto;width:24px;height:24px;border-radius:7px;border:2px solid var(--muted);background:transparent;display:grid;place-items:center;padding:0;margin-top:1px;color:transparent;font-size:14px;line-height:1}
+.check.round{border-radius:50%}
+.check[aria-pressed="true"]{background:var(--priv);border-color:var(--priv);color:var(--on-accent)}
+.done .li-main>span:first-child{text-decoration:line-through;color:var(--muted)}
+.tag{display:inline-block;font-size:.75rem;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--priv-soft);color:var(--priv)}
+.tag.shared{background:var(--shared-soft);color:var(--shared)}
+.tag.late{background:transparent;border:1px solid var(--warn);color:var(--warn)}
+.bar{flex:0 0 4px;align-self:stretch;border-radius:2px;background:var(--priv)}
+.bar.shared{background:var(--shared)}
+.bar.todo{background:var(--muted)}
+
+/* Gewohnheiten */
+.habit{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.habit:first-child{border-top:0}
+.habit-name{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+.week{display:grid;grid-template-columns:repeat(7,38px);gap:6px}
+.week.head{font-size:.75rem;color:var(--muted);text-align:center;font-weight:600}
+.week.head .now{color:var(--priv)}
+.dot{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);background:transparent;padding:0;color:transparent;font-size:16px}
+.dot[aria-pressed="true"]{background:var(--priv);border-color:var(--priv);color:var(--on-accent)}
+.dot.now{border-color:var(--priv)}
+.dot:disabled{opacity:.4;cursor:default;border-style:dashed}
+.weekhead{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end}
+.weekhead>div:first-child{flex:1 1 180px}
+
+/* Kalender */
+.cal-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.cal-layout{grid-template-columns:minmax(0,1fr)}}
+.grid7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dow{font-size:.75rem;font-weight:600;color:var(--muted);text-align:center;letter-spacing:.04em;text-transform:uppercase;padding-bottom:2px}
+.day{border:1px solid var(--line);background:var(--bg);border-radius:8px;min-height:84px;padding:6px;display:flex;flex-direction:column;gap:3px;align-items:stretch;text-align:left;min-width:0}
+.day.out{opacity:.45}
+.day.today .dnum{background:var(--ink);color:var(--bg)}
+.day.sel{border-color:var(--priv);box-shadow:inset 0 0 0 1px var(--priv)}
+.dnum{font-weight:600;font-size:.85rem;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.chip{font-size:.72rem;font-weight:600;border-radius:4px;padding:1px 5px;background:var(--priv-soft);color:var(--priv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.shared{background:var(--shared-soft);color:var(--shared)}
+.more{font-size:.7rem;color:var(--muted)}
+.pips{display:none;gap:3px;flex-wrap:wrap}
+.pip{width:7px;height:7px;border-radius:50%;background:var(--priv)}
+.pip.shared{background:var(--shared)}
+@media (max-width:640px){
+  .day{min-height:52px;padding:4px;align-items:center}
+  .chip,.more{display:none} .pips{display:flex;justify-content:center}
+}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+details.help{font-size:.9rem}
+details.help summary{cursor:pointer;font-weight:600}
+details.help ol{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.who{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:baseline}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;max-width:calc(100% - 32px);font-size:.9rem;z-index:10}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Tagwerk</h1><span class="muted small" id="todayLabel"></span></div>
+    <nav class="tabs" role="tablist" aria-label="Bereiche">
+      <button role="tab" data-view="heute">Heute</button>
+      <button role="tab" data-view="gewohnheiten">Gewohnheiten</button>
+      <button role="tab" data-view="kalender">Kalender</button>
+      <button role="tab" data-view="aufgaben">Aufgaben</button>
+    </nav>
+  </header>
+
+  <div class="notice" id="status">Deine Daten werden geladen …</div>
+
+  <!-- HEUTE -->
+  <section class="view" id="v-heute">
+    <div><h2 id="heuteTitle"></h2><p class="muted" id="heuteSum"></p></div>
+    <div class="cols">
+      <div class="panel"><h3>Gewohnheiten heute</h3><div id="heuteHabits"></div></div>
+      <div class="panel"><h3>Termine der nächsten 7 Tage</h3><div id="heuteEvents"></div></div>
+      <div class="panel"><h3>Offene Aufgaben</h3><div id="heuteTodos"></div></div>
+    </div>
+  </section>
+
+  <!-- GEWOHNHEITEN -->
+  <section class="view" id="v-gewohnheiten" hidden>
+    <h2>Gewohnheiten</h2>
+    <form class="panel" id="habitForm">
+      <div class="row">
+        <input class="grow" type="text" id="habitName" maxlength="60" placeholder="Neue Gewohnheit, z. B. 10 Minuten lesen" aria-label="Neue Gewohnheit">
+        <button class="btn primary" type="submit">Hinzufügen</button>
+      </div>
+    </form>
+    <div class="panel">
+      <div class="weekhead">
+        <div class="row">
+          <button class="btn" type="button" data-act="week" data-n="-1" aria-label="Vorherige Woche">‹</button>
+          <strong id="weekLabel" class="num"></strong>
+          <button class="btn" type="button" data-act="week" data-n="1" aria-label="Nächste Woche">›</button>
+          <button class="btn ghost" type="button" data-act="week" data-n="0">Diese Woche</button>
+        </div>
+        <div class="week head" id="weekHead"></div>
+      </div>
+      <div id="habitList"></div>
+    </div>
+  </section>
+
+  <!-- KALENDER -->
+  <section class="view" id="v-kalender" hidden>
+    <div class="row spread">
+      <h2 id="calTitle"></h2>
+      <div class="row">
+        <button class="btn" type="button" data-act="month" data-n="-1" aria-label="Vorheriger Monat">‹</button>
+        <button class="btn" type="button" data-act="month" data-n="0">Heute</button>
+        <button class="btn" type="button" data-act="month" data-n="1" aria-label="Nächster Monat">›</button>
+      </div>
+    </div>
+    <div class="row spread">
+      <div class="seg" role="group" aria-label="Kalender anzeigen">
+        <button type="button" data-act="filter" data-f="alle">Alle</button>
+        <button type="button" data-act="filter" data-f="privat">Nur privat</button>
+        <button type="button" data-act="filter" data-f="gemeinsam">Nur gemeinsam</button>
+      </div>
+      <div class="legend"><span><i class="pip"></i>Privat – siehst nur du</span><span><i class="pip shared"></i>Gemeinsam – sehen alle Eingeladenen</span></div>
+    </div>
+    <div class="cal-layout">
+      <div class="panel">
+        <div class="grid7"><div class="dow">Mo</div><div class="dow">Di</div><div class="dow">Mi</div><div class="dow">Do</div><div class="dow">Fr</div><div class="dow">Sa</div><div class="dow">So</div></div>
+        <div class="grid7" id="calGrid"></div>
+      </div>
+      <div class="view">
+        <div class="panel"><h3 id="dayTitle"></h3><div id="dayList"></div></div>
+        <form class="panel" id="eventForm">
+          <h3 id="eventFormTitle">Neuer Termin</h3>
+          <label class="field" for="evTitle">Titel<input type="text" id="evTitle" maxlength="80" placeholder="z. B. Abendessen mit Jonas" required></label>
+          <div class="row">
+            <label class="field" for="evDate">Datum<input type="date" id="evDate" required></label>
+            <label class="field" for="evStart">Von<input type="time" id="evStart"></label>
+            <label class="field" for="evEnd">Bis<input type="time" id="evEnd"></label>
+          </div>
+          <div>
+            <div class="seg" role="radiogroup" aria-label="In welchen Kalender?">
+              <input type="radio" name="evKind" id="evPriv" value="privat" checked><label for="evPriv">Privat</label>
+              <input type="radio" name="evKind" id="evShared" value="gemeinsam"><label for="evShared">Gemeinsam</label>
+            </div>
+            <p class="small muted" id="kindHint" style="margin-top:6px"></p>
+          </div>
+          <label class="field" for="evNote">Notiz (optional)<textarea id="evNote" maxlength="300"></textarea></label>
+          <div class="row">
+            <button class="btn primary" type="submit" id="evSave">Termin speichern</button>
+            <button class="btn ghost" type="button" data-act="cancelEdit" id="evCancel" hidden>Abbrechen</button>
+          </div>
+        </form>
+        <details class="panel help">
+          <summary>Gemeinsamen Kalender mit jemandem teilen</summary>
+          <ol>
+            <li>Öffne das Teilen-Menü dieser Seite und lade die Person per E-Mail ein.</li>
+            <li>Gib ihr das Recht zu bearbeiten, damit sie selbst Termine eintragen kann. Mit reinem Leserecht sieht sie die gemeinsamen Termine nur.</li>
+            <li>Schick ihr den Link. Sie meldet sich an und sieht sofort alle Termine, die als „Gemeinsam“ gespeichert sind.</li>
+          </ol>
+          <p class="muted">Private Termine, Gewohnheiten und Aufgaben bleiben bei jeder Person für sich. Auch du siehst die privaten Einträge der anderen nicht.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUFGABEN -->
+  <section class="view" id="v-aufgaben" hidden>
+    <h2>Aufgaben</h2>
+    <form class="panel" id="todoForm">
+      <div class="row">
+        <input class="grow" type="text" id="todoText" maxlength="140" placeholder="Was ist zu tun?" aria-label="Neue Aufgabe">
+        <label class="field" for="todoDue">Fällig am (optional)<input type="date" id="todoDue"></label>
+        <button class="btn primary" type="submit" style="align-self:flex-end">Hinzufügen</button>
+      </div>
+    </form>
+    <div class="panel">
+      <div class="row spread">
+        <div class="seg" role="group" aria-label="Aufgaben filtern">
+          <button type="button" data-act="tfilter" data-f="offen">Offen</button>
+          <button type="button" data-act="tfilter" data-f="erledigt">Erledigt</button>
+        </div>
+        <button class="btn ghost" type="button" data-act="clearDone" id="clearDone" hidden>Erledigte entfernen</button>
+      </div>
+      <div id="todoList"></div>
+    </div>
+  </section>
+</div>
+<div id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const monday=d=>addDays(d,-((d.getDay()+6)%7));
+const today=()=>ymd(new Date());
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const fmt=(d,o)=>d.toLocaleDateString('de-DE',o);
+const DOW=['Mo','Di','Mi','Do','Fr','Sa','So'];
+const DATE_RE=/^\d{4}-\d{2}-\d{2}$/, TIME_RE=/^\d{2}:\d{2}$/;
+const isoWeek=d=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)};
+
+const S={habits:[],todos:[],events:[],shared:[]};
+const ui={view:'heute',week:monday(new Date()),month:new Date(new Date().getFullYear(),new Date().getMonth(),1),sel:today(),filter:'alle',tfilter:'offen',edit:null};
+let mode='loading', privCol=null, sharedCol=null, userCap=null, myId=null, canShare=false, people={};
+
+/* ---------- Speichern ---------- */
+const writing={},dirty={};
+function save(kind){
+  if(mode!=='db'){try{localStorage.setItem('tagwerk_'+kind,JSON.stringify(S[kind]))}catch(e){}return}
+  dirty[kind]=true; if(writing[kind])return; writing[kind]=true;
+  (async()=>{
+    while(dirty[kind]){dirty[kind]=false;
+      try{await privCol.doc(kind).set({items:clone(S[kind])})}
+      catch(e){toast(e&&e.code==='invalid_argument'?'Du hast hier nur Leserechte. Diese Änderung wurde nicht gespeichert.':'Speichern hat nicht geklappt. Bitte versuch es gleich noch einmal.');break}
+    }
+    writing[kind]=false;
+  })();
+}
+function change(kind){save(kind);render()}
+async function sharedOp(fn){
+  try{await fn()}catch(e){
+    if(e&&e.code==='invalid_argument'){canShare=false;toast('Du darfst gemeinsame Termine ansehen, aber nicht ändern.')}
+    else toast('Der gemeinsame Termin konnte nicht gespeichert werden. Bitte versuch es noch einmal.');
+    render();
+  }
+}
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,4500)}
+
+/* ---------- Abfragen ---------- */
+function eventsOn(k,filter){
+  const f=filter||ui.filter, out=[];
+  if(f!=='gemeinsam')S.events.forEach(e=>{if(e.date===k)out.push(Object.assign({shared:false},e))});
+  if(f!=='privat')S.shared.forEach(e=>{if(e.date===k)out.push(Object.assign({shared:true},e))});
+  return out.sort((a,b)=>(a.start||'').localeCompare(b.start||'')||a.title.localeCompare(b.title));
+}
+function streak(h){
+  let d=new Date(), n=0;
+  if(!h.log[ymd(d)])d=addDays(d,-1);
+  while(h.log[ymd(d)]){n++;d=addDays(d,-1)}
+  return n;
+}
+const who=e=>{
+  if(!e.shared)return '<span class="tag">Privat</span>';
+  let name='';
+  if(e.by&&e.by===myId)name='von dir';
+  else if(e.by&&people[e.by]&&people[e.by].name)name='von '+people[e.by].name;
+  return '<span class="tag shared">Gemeinsam'+(name?' · '+esc(name):'')+'</span>';
+};
+const timeStr=e=>e.start?(e.start+(e.end?'–'+e.end:'')):'Ganztägig';
+const dueLabel=t=>{
+  if(!t.due)return '';
+  const late=!t.done&&t.due<today();
+  const txt=t.due===today()?'Heute':fmt(parse(t.due),{day:'numeric',month:'short'});
+  return ' <span class="tag '+(late?'late':'')+'">'+(late?'Überfällig · ':'')+esc(txt)+'</span>';
+};
+const loadingOr=(txt)=>'<p class="empty">'+(mode==='loading'?'Lädt …':txt)+'</p>';
+
+/* ---------- Darstellung ---------- */
+function render(){
+  const t=today(), now=new Date();
+  $('#todayLabel').textContent=fmt(now,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===ui.view));
+  ['heute','gewohnheiten','kalender','aufgaben'].forEach(v=>$('#v-'+v).hidden=v!==ui.view);
+
+  /* Heute */
+  $('#heuteTitle').textContent=fmt(now,{weekday:'long',day:'numeric',month:'long'});
+  const doneH=S.habits.filter(h=>h.log[t]).length, open=S.todos.filter(x=>!x.done);
+  const evToday=eventsOn(t,'alle').length;
+  $('#heuteSum').textContent=mode==='loading'?'':doneH+' von '+S.habits.length+' Gewohnheiten erledigt · '+evToday+(evToday===1?' Termin':' Termine')+' heute · '+open.length+(open.length===1?' offene Aufgabe':' offene Aufgaben');
+  $('#heuteHabits').innerHTML=S.habits.length?'<ul class="list">'+S.habits.map(h=>
+    '<li><button class="check round" data-act="toggleHabit" data-id="'+esc(h.id)+'" data-d="'+t+'" aria-pressed="'+!!h.log[t]+'" aria-label="'+esc(h.name)+' heute erledigt">✓</button><div class="li-main"><span>'+esc(h.name)+'</span><div class="small muted">'+streakText(streak(h))+'</div></div></li>').join('')+'</ul>'
+    :loadingOr('Noch keine Gewohnheiten.')+(mode==='loading'?'':'<button class="btn" data-act="go" data-view="gewohnheiten">Erste Gewohnheit anlegen</button>');
+  let evH='';
+  for(let i=0;i<7;i++){const d=addDays(now,i),k=ymd(d),list=eventsOn(k,'alle');if(!list.length)continue;
+    const label=i===0?'Heute':i===1?'Morgen':fmt(d,{weekday:'long',day:'numeric',month:'short'});
+    evH+=list.map(e=>'<li><span class="bar '+(e.shared?'shared':'')+'"></span><div class="li-main"><span>'+esc(e.title)+'</span><div class="small muted num">'+esc(label)+' · '+esc(timeStr(e))+'</div></div>'+who(e)+'</li>').join('')}
+  $('#heuteEvents').innerHTML=evH?'<ul class="list">'+evH+'</ul>':loadingOr('Keine Termine in den nächsten 7 Tagen.')+(mode==='loading'?'':'<button class="btn" data-act="go" data-view="kalender">Termin eintragen</button>');
+  const top=sortTodos(open).slice(0,6);
+  $('#heuteTodos').innerHTML=top.length?'<ul class="list">'+top.map(todoLi).join('')+'</ul>'+(open.length>6?'<button class="btn ghost" data-act="go" data-view="aufgaben">Alle '+open.length+' anzeigen</button>':'')
+    :loadingOr('Nichts offen.')+(mode==='loading'?'':'<button class="btn" data-act="go" data-view="aufgaben">Aufgabe hinzufügen</button>');
+
+  /* Gewohnheiten */
+  const ws=ui.week, we=addDays(ws,6);
+  $('#weekLabel').textContent='KW '+isoWeek(ws)+' · '+fmt(ws,{day:'numeric',month:'short'})+' – '+fmt(we,{day:'numeric',month:'short'});
+  let head='';for(let i=0;i<7;i++){const d=addDays(ws,i);head+='<div class="'+(ymd(d)===t?'now':'')+'">'+DOW[i]+'<br><span class="num">'+d.getDate()+'.</span></div>'}
+  $('#weekHead').innerHTML=head;
+  $('#weekHead').hidden=!S.habits.length;
+  $('#habitList').innerHTML=S.habits.length?S.habits.map(h=>{
+    let cells='';for(let i=0;i<7;i++){const d=addDays(ws,i),k=ymd(d);
+      cells+='<button class="dot'+(k===t?' now':'')+'" data-act="toggleHabit" data-id="'+esc(h.id)+'" data-d="'+k+'" aria-pressed="'+!!h.log[k]+'"'+(k>t?' disabled':'')+' aria-label="'+esc(h.name)+', '+DOW[i]+' '+d.getDate()+'.">✓</button>'}
+    return '<div class="habit"><div class="habit-name"><strong>'+esc(h.name)+'</strong><div class="small muted">'+streakText(streak(h))+' <button class="btn ghost" data-act="delHabit" data-id="'+esc(h.id)+'" data-confirm>Entfernen</button></div></div><div class="week">'+cells+'</div></div>'}).join('')
+    :loadingOr('Noch keine Gewohnheiten. Trag oben die erste ein, dann kannst du sie hier Tag für Tag abhaken.');
+
+  /* Kalender */
+  const y=ui.month.getFullYear(), m=ui.month.getMonth();
+  $('#calTitle').textContent=fmt(ui.month,{month:'long',year:'numeric'});
+  document.querySelectorAll('[data-act=filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===ui.filter));
+  const first=monday(new Date(y,m,1));let g='';
+  for(let i=0;i<42;i++){const d=addDays(first,i),k=ymd(d);
+    if(i>0&&i%7===0&&d.getMonth()!==m)break;
+    const list=eventsOn(k);
+    g+='<button type="button" class="day'+(d.getMonth()!==m?' out':'')+(k===t?' today':'')+(k===ui.sel?' sel':'')+'" data-act="day" data-d="'+k+'" aria-label="'+esc(fmt(d,{weekday:'long',day:'numeric',month:'long'}))+', '+list.length+' Termine"><span class="dnum">'+d.getDate()+'</span>'
+      +list.slice(0,2).map(e=>'<span class="chip '+(e.shared?'shared':'')+'">'+esc((e.start?e.start+' ':'')+e.title)+'</span>').join('')
+      +(list.length>2?'<span class="more">+'+(list.length-2)+' weitere</span>':'')
+      +'<span class="pips">'+list.slice(0,4).map(e=>'<i class="pip '+(e.shared?'shared':'')+'"></i>').join('')+'</span></button>'}
+  $('#calGrid').innerHTML=g;
+  const sd=parse(ui.sel), dl=eventsOn(ui.sel), dueT=S.todos.filter(x=>x.due===ui.sel&&!x.done);
+  $('#dayTitle').textContent=fmt(sd,{weekday:'long',day:'numeric',month:'long'});
+  $('#dayList').innerHTML=(dl.length||dueT.length)?'<ul class="list">'+dl.map(e=>{
+      const editable=!e.shared||canShare;
+      return '<li><span class="bar '+(e.shared?'shared':'')+'"></span><div class="li-main"><span><strong>'+esc(e.title)+'</strong></span><div class="small muted num">'+esc(timeStr(e))+'</div>'+(e.note?'<div class="small">'+esc(e.note)+'</div>':'')+'<div style="margin-top:4px">'+who(e)+'</div></div>'
+        +(editable?'<div class="row"><button class="btn ghost" data-act="editEv" data-id="'+esc(e.id)+'" data-s="'+(e.shared?1:0)+'">Ändern</button><button class="btn ghost" data-act="delEv" data-id="'+esc(e.id)+'" data-s="'+(e.shared?1:0)+'" data-confirm>Löschen</button></div>':'')+'</li>'}).join('')
+      +dueT.map(x=>'<li><span class="bar todo"></span><div class="li-main"><span>'+esc(x.text)+'</span><div class="small muted">Aufgabe fällig</div></div></li>').join('')+'</ul>'
+    :loadingOr('Keine Termine an diesem Tag.');
+  const sharedOk=canShare&&!!sharedCol;
+  $('#evShared').disabled=!sharedOk||!!ui.edit; $('#evPriv').disabled=!!ui.edit;
+  if(!sharedOk&&!ui.edit)$('#evPriv').checked=true;
+  $('#kindHint').textContent=mode==='loading'?'':!sharedCol?'Der gemeinsame Kalender ist in dieser Version nicht verfügbar.':!canShare?'Du kannst gemeinsame Termine ansehen, aber keine eintragen. Bitte die Person, der diese Seite gehört, um Bearbeitungsrechte.':'Privat siehst nur du. Gemeinsam sehen alle, die zu dieser Seite eingeladen sind.';
+  $('#eventFormTitle').textContent=ui.edit?'Termin ändern':'Neuer Termin';
+  $('#evSave').textContent=ui.edit?'Änderung speichern':'Termin speichern';
+  $('#evCancel').hidden=!ui.edit;
+
+  /* Aufgaben */
+  document.querySelectorAll('[data-act=tfilter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===ui.tfilter));
+  const doneT=S.todos.filter(x=>x.done), shown=ui.tfilter==='offen'?sortTodos(open):doneT.slice().sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+  $('#clearDone').hidden=!(ui.tfilter==='erledigt'&&doneT.length);
+  $('#todoList').innerHTML=shown.length?'<ul class="list">'+shown.map(x=>todoLi(x,true)).join('')+'</ul>'
+    :loadingOr(ui.tfilter==='offen'?'Keine offenen Aufgaben. Trag oben ein, was als Nächstes ansteht.':'Noch nichts erledigt.');
+}
+function streakText(n){return n===0?'Noch keine Serie':n===1?'1 Tag in Folge':n+' Tage in Folge'}
+function sortTodos(a){return a.slice().sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')||x.id.localeCompare(y.id))}
+function todoLi(x,del){
+  return '<li class="'+(x.done?'done':'')+'"><button class="check" data-act="toggleTodo" data-id="'+esc(x.id)+'" aria-pressed="'+!!x.done+'" aria-label="Erledigt: '+esc(x.text)+'">✓</button><div class="li-main"><span>'+esc(x.text)+'</span>'+dueLabel(x)+'</div>'
+    +(del===true?'<button class="btn ghost" data-act="delTodo" data-id="'+esc(x.id)+'">Entfernen</button>':'')+'</li>';
+}
+
+/* ---------- Aktionen ---------- */
+function resetEventForm(){ui.edit=null;$('#evTitle').value='';$('#evStart').value='';$('#evEnd').value='';$('#evNote').value='';$('#evDate').value=ui.sel}
+function setView(v){ui.view=v;try{history.replaceState(null,'','#'+v)}catch(e){}render()}
+
+document.addEventListener('click',ev=>{
+  const tab=ev.target.closest('nav.tabs button');if(tab){setView(tab.dataset.view);return}
+  const b=ev.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,id=b.dataset.id;
+  if(b.hasAttribute('data-confirm')&&!b.hasAttribute('data-armed')){
+    b.setAttribute('data-armed','');b.dataset.label=b.textContent;b.textContent='Wirklich? Nochmal tippen';
+    setTimeout(()=>{if(b.isConnected&&b.hasAttribute('data-armed')){b.removeAttribute('data-armed');b.textContent=b.dataset.label}},3500);return}
+  if(a==='go')setView(b.dataset.view);
+  else if(a==='toggleHabit'){const h=S.habits.find(x=>x.id===id);if(!h)return;const k=b.dataset.d;if(h.log[k])delete h.log[k];else h.log[k]=1;change('habits')}
+  else if(a==='delHabit'){S.habits=S.habits.filter(x=>x.id!==id);change('habits')}
+  else if(a==='week'){const n=+b.dataset.n;ui.week=n?addDays(ui.week,7*n):monday(new Date());render()}
+  else if(a==='month'){const n=+b.dataset.n,t=new Date();ui.month=n?new Date(ui.month.getFullYear(),ui.month.getMonth()+n,1):new Date(t.getFullYear(),t.getMonth(),1);if(!n){ui.sel=today();if(!ui.edit)$('#evDate').value=ui.sel}render()}
+  else if(a==='filter'){ui.filter=b.dataset.f;render()}
+  else if(a==='day'){ui.sel=b.dataset.d;const d=parse(ui.sel);ui.month=new Date(d.getFullYear(),d.getMonth(),1);if(!ui.edit)$('#evDate').value=ui.sel;render()}
+  else if(a==='editEv'){const sh=b.dataset.s==='1',e=(sh?S.shared:S.events).find(x=>x.id===id);if(!e)return;
+    ui.edit={id:id,shared:sh};$('#evTitle').value=e.title;$('#evDate').value=e.date;$('#evStart').value=e.start||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';
+    (sh?$('#evShared'):$('#evPriv')).checked=true;render();$('#evTitle').focus()}
+  else if(a==='delEv'){if(ui.edit&&ui.edit.id===id)resetEventForm();
+    if(b.dataset.s==='1'){sharedOp(()=>sharedCol.doc(id).delete())}else{S.events=S.events.filter(x=>x.id!==id);change('events')}}
+  else if(a==='cancelEdit'){resetEventForm();render()}
+  else if(a==='toggleTodo'){const x=S.todos.find(q=>q.id===id);if(!x)return;x.done=!x.done;x.doneAt=x.done?Date.now():null;change('todos')}
+  else if(a==='delTodo'){S.todos=S.todos.filter(x=>x.id!==id);change('todos')}
+  else if(a==='tfilter'){ui.tfilter=b.dataset.f;render()}
+  else if(a==='clearDone'){S.todos=S.todos.filter(x=>!x.done);change('todos')}
+});
+
+$('#habitForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#habitName').value.trim();if(!n)return;
+  S.habits.push({id:newId(),name:n,log:{}});$('#habitName').value='';change('habits')});
+$('#todoForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#todoText').value.trim();if(!n)return;
+  S.todos.push({id:newId(),text:n,due:$('#todoDue').value||'',done:false,doneAt:null});$('#todoText').value='';$('#todoDue').value='';ui.tfilter='offen';change('todos')});
+$('#eventForm').addEventListener('submit',e=>{e.preventDefault();
+  const title=$('#evTitle').value.trim(),date=$('#evDate').value;if(!title||!DATE_RE.test(date))return;
+  let start=$('#evStart').value,end=$('#evEnd').value;if(!start)end='';if(end&&end<start)end='';
+  const body={title:title,date:date,start:start,end:end,note:$('#evNote').value.trim()};
+  const shared=ui.edit?ui.edit.shared:$('#evShared').checked;
+  if(shared){
+    if(!sharedCol||!canShare){toast('Gemeinsame Termine kannst du hier nicht eintragen.');return}
+    if(ui.edit){const old=S.shared.find(x=>x.id===ui.edit.id);body.by=(old&&old.by)||myId||'';const ref=sharedCol.doc(ui.edit.id);sharedOp(()=>ref.set(body))}
+    else{body.by=myId||'';sharedOp(()=>sharedCol.add(body))}
+  }else{
+    if(ui.edit){const i=S.events.findIndex(x=>x.id===ui.edit.id);if(i>=0)S.events[i]=Object.assign({id:ui.edit.id},body)}
+    else S.events.push(Object.assign({id:newId()},body));
+    save('events');
+  }
+  ui.sel=date;const d=parse(date);ui.month=new Date(d.getFullYear(),d.getMonth(),1);
+  resetEventForm();render();
+});
+
+/* ---------- Start ---------- */
+function cleanPrivate(kind,items){
+  if(!Array.isArray(items))return [];
+  return items.filter(x=>x&&typeof x.id==='string').map(x=>{
+    if(kind==='habits')return {id:x.id,name:String(x.name||''),log:(x.log&&typeof x.log==='object')?x.log:{}};
+    if(kind==='todos')return {id:x.id,text:String(x.text||''),due:DATE_RE.test(x.due)?x.due:'',done:!!x.done,doneAt:x.doneAt||null};
+    return DATE_RE.test(x.date)?{id:x.id,title:String(x.title||''),date:x.date,start:TIME_RE.test(x.start)?x.start:'',end:TIME_RE.test(x.end)?x.end:'',note:String(x.note||'')}:null;
+  }).filter(Boolean);
+}
+async function refreshPeople(){
+  if(!userCap)return;
+  const ids=[...new Set(S.shared.map(e=>e.by).filter(Boolean))];if(!ids.length)return;
+  try{people=await userCap.profiles(ids);render()}catch(e){}
+}
+async function init(){
+  const h=(location.hash||'').slice(1);if(['heute','gewohnheiten','kalender','aufgaben'].includes(h))ui.view=h;
+  $('#evDate').value=ui.sel;render();
+  let db=null;
+  try{if(window.claude&&window.claude.use){const r=await Promise.all([window.claude.use('db'),window.claude.use('user')]);db=r[0];userCap=r[1]}}catch(e){}
+  if(userCap){try{myId=await userCap.id();const c=await userCap.can('data.write');canShare=c!==false}catch(e){}}
+  else canShare=!!db;
+  const st=$('#status');
+  if(db&&myId){
+    mode='db';privCol=db.collection('data/users/'+myId);st.hidden=true;
+    ['habits','todos','events'].forEach(kind=>{
+      privCol.doc(kind).onSnapshot(s=>{
+        if(writing[kind]||dirty[kind]||s.metadata.hasPendingWrites)return;
+        S[kind]=s.exists?cleanPrivate(kind,clone((s.data()||{}).items||[])):[];render();
+      },()=>{});
+    });
+  }else{
+    mode='local';
+    ['habits','todos','events'].forEach(kind=>{try{S[kind]=cleanPrivate(kind,JSON.parse(localStorage.getItem('tagwerk_'+kind)||'[]'))}catch(e){S[kind]=[]}});
+    st.textContent='Deine Einträge werden nur in diesem Browser auf diesem Gerät gespeichert. Der gemeinsame Kalender ist in dieser Version nicht verfügbar.';
+  }
+  if(db){
+    sharedCol=db.collection('shared_events');
+    sharedCol.onSnapshot(s=>{
+      S.shared=s.docs.map(d=>{const x=d.data()||{};
+        return (typeof x.title==='string'&&DATE_RE.test(x.date))?{id:d.id,title:x.title.slice(0,80),date:x.date,start:TIME_RE.test(x.start)?x.start:'',end:TIME_RE.test(x.end)?x.end:'',note:String(x.note||'').slice(0,300),by:typeof x.by==='string'?x.by:''}:null}).filter(Boolean);
+      render();refreshPeople();
+    },()=>{});
+  }else canShare=false;
+  render();
+}
+init();
+})();
+</script>
+</body>
+</html>
