@@ -3,9 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>body{margin:0}[hidden]{display:none!important}</style>
 <title>Tagwerk Planer</title>
+<meta name="description" content="Habit Tracker, Kalender und To-do-Liste in einem.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tagwerk">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <style>
+html{padding-top:env(safe-area-inset-top,0px)}body{margin:0}[hidden]{display:none!important}
 /* Layout nach Apples Human Interface Guidelines: Systemschrift, gruppierte Flächen, großer Titel,
    segmentierte Steuerung am Desktop und Tab-Leiste unten am iPhone. Blau = privat, Violett = gemeinsam. */
 :root{
@@ -144,22 +154,82 @@ details.help ol{margin:8px 0 0;padding-left:22px;display:flex;flex-direction:col
 
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface);color:var(--ink);box-shadow:0 8px 30px rgb(0 0 0 / .25);padding:12px 18px;border-radius:14px;max-width:calc(100% - 32px);font-size:15px;z-index:10}
 @media (max-width:640px){#toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
-</style>
 
+/* ---- Ergänzungen Version 2 ---- */
+select{font:inherit;color:inherit;background:var(--sunk);border:0;border-radius:10px;padding:10px 12px;min-height:44px;max-width:100%}
+input[type=search]{font:inherit;color:inherit;background:var(--sunk);border:0;border-radius:10px;padding:8px 12px;min-height:36px;flex:1 1 160px;max-width:320px;min-width:0;-webkit-appearance:none;appearance:none}
+@media (max-width:640px){input[type=search]{max-width:none;flex-basis:100%}}
+details.more summary{cursor:pointer;color:var(--priv);font-size:15px}
+details.more>div{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills input{position:absolute;opacity:0;pointer-events:none}
+.pills label{width:40px;height:40px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;font-size:13px;font-weight:500;cursor:pointer}
+.pills input:checked+label{background:var(--priv);color:var(--on-accent);font-weight:600}
+.pills input:focus-visible+label{outline:3px solid var(--priv-soft)}
+.tag.plain{background:var(--sunk);color:var(--muted)}
+.tag.hoch{background:transparent;color:var(--warn);padding-inline:0;font-weight:600}
+.tag.mittel{background:transparent;color:var(--muted);padding-inline:0;font-weight:600}
+.tags{display:flex;gap:6px 8px;flex-wrap:wrap;align-items:center;margin-top:3px}
+.acts{display:flex;gap:0;flex-wrap:wrap;justify-content:flex-end}
+.dot.off{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
+.dot.off[aria-pressed="true"]{background:var(--ok);box-shadow:none}
+.habit{align-items:flex-start}
+.stats{flex:1 1 100%;display:flex;gap:16px 28px;flex-wrap:wrap;align-items:flex-start;background:var(--bg);border-radius:10px;padding:12px}
+.heat{display:grid;grid-template-columns:repeat(7,18px);gap:4px}
+.heat i{width:18px;height:18px;border-radius:5px;background:var(--sunk);display:block}
+.heat i.on{background:var(--ok)}
+.heat i.miss{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
+.heat i.na{opacity:.35}
+.heat span{font-size:10px;color:var(--muted);text-align:center}
+.stats dl{margin:0;display:grid;grid-template-columns:auto auto;gap:4px 14px;font-size:15px}
+.stats dt{color:var(--muted)} .stats dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Wochenansicht */
+.wk{display:grid;grid-template-columns:30px repeat(7,minmax(0,1fr));column-gap:2px;row-gap:6px}
+.wk-day{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 0;font-size:12px;color:var(--muted);border-radius:10px;min-width:0}
+.wk-day.sel{background:var(--sunk)}
+.wk-day.today .dnum{background:var(--today);color:var(--on-accent);font-weight:600}
+.wk-day .dnum{color:var(--ink)}
+.wk-gut{position:relative;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.wk-gut span{position:absolute;left:0;transform:translateY(-50%)}
+.wk-allcell{display:flex;flex-direction:column;gap:2px;min-width:0;min-height:20px;border-bottom:.5px solid var(--line);padding-bottom:4px}
+.wk-allcell .chip,.wk-ev{border:0;text-align:left;cursor:pointer;font-family:inherit}
+.wk-col{position:relative;min-width:0;border-radius:6px;cursor:pointer;background-image:linear-gradient(var(--line),var(--line));background-size:100% .5px;background-repeat:repeat-y;background-size:100% 36px;background-image:linear-gradient(to bottom,var(--line) 0,var(--line) .5px,transparent .5px)}
+.wk-col.sel{background-color:var(--sunk)}
+.wk-ev{position:absolute;background:var(--priv-soft);color:var(--priv);border-left:2.5px solid var(--priv);border-radius:4px;font-size:11px;font-weight:500;line-height:1.2;padding:2px 3px;overflow:hidden;overflow-wrap:anywhere}
+.result{display:flex;gap:12px;align-items:flex-start;width:100%;border:0;background:transparent;text-align:left;padding:0}
+
+#toast{display:flex;gap:14px;align-items:center}
+#toast button{border:0;background:transparent;color:var(--priv);font-weight:600;padding:0;white-space:nowrap}
+.notice{display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.filebtn{display:inline-flex;align-items:center}
+.filebtn input{position:absolute;opacity:0;width:1px;height:1px}
+.wk-allcell .chip{display:block}
+.wk-ev{white-space:nowrap;overflow-wrap:normal}
+#listFilter{align-self:flex-start}
+</style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="brand"><h1>Tagwerk</h1><span class="muted small" id="todayLabel"></span></div>
+    <input type="search" id="search" placeholder="Suchen" aria-label="Termine, Aufgaben und Gewohnheiten durchsuchen">
     <nav class="tabs" role="tablist" aria-label="Bereiche">
-      <button role="tab" data-view="heute"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>Heute</button>
-      <button role="tab" data-view="gewohnheiten"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></svg>Gewohnheiten</button>
-      <button role="tab" data-view="kalender"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg>Kalender</button>
-      <button role="tab" data-view="aufgaben"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="18" r="1.2"/></svg>Aufgaben</button>
+      <button role="tab" data-view="heute"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg><span>Heute</span></button>
+      <button role="tab" data-view="gewohnheiten"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></svg><span>Gewohnheiten</span></button>
+      <button role="tab" data-view="kalender"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><span>Kalender</span></button>
+      <button role="tab" data-view="aufgaben"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="18" r="1.2"/></svg><span>Aufgaben</span></button>
+      <button role="tab" data-view="mehr"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Mehr</span></button>
     </nav>
   </header>
 
-  <div class="notice" id="status">Deine Daten werden geladen …</div>
+  <div class="notice" id="notice" hidden><span>Deine Einträge liegen nur in diesem Browser. Lade ab und zu eine Sicherung herunter.</span><button class="btn" type="button" data-act="export">Jetzt sichern</button></div>
+
+  <!-- SUCHE -->
+  <section class="view" id="v-suche" hidden>
+    <h2>Suche</h2>
+    <div class="panel"><div id="searchList"></div></div>
+  </section>
 
   <!-- HEUTE -->
   <section class="view" id="v-heute">
@@ -175,9 +245,25 @@ details.help ol{margin:8px 0 0;padding-left:22px;display:flex;flex-direction:col
   <section class="view" id="v-gewohnheiten" hidden>
     <h2>Gewohnheiten</h2>
     <form class="panel" id="habitForm">
+      <h3 id="habitFormTitle">Neue Gewohnheit</h3>
       <div class="row">
-        <input class="grow" type="text" id="habitName" maxlength="60" placeholder="Neue Gewohnheit" aria-label="Neue Gewohnheit">
-        <button class="btn primary" type="submit">Hinzufügen</button>
+        <input class="grow" type="text" id="habitName" maxlength="60" placeholder="z. B. 10 Minuten lesen" aria-label="Name der Gewohnheit" required>
+        <select id="habitPlan" aria-label="Wie oft?">
+          <option value="taeglich">Täglich</option>
+          <option value="werktags">Werktags (Mo–Fr)</option>
+          <option value="tage">An bestimmten Tagen</option>
+          <option value="woche">Mehrmals pro Woche</option>
+        </select>
+      </div>
+      <div class="pills" id="habitDays" hidden role="group" aria-label="Wochentage">
+        <input type="checkbox" id="hd0"><label for="hd0">Mo</label><input type="checkbox" id="hd1"><label for="hd1">Di</label><input type="checkbox" id="hd2"><label for="hd2">Mi</label><input type="checkbox" id="hd3"><label for="hd3">Do</label><input type="checkbox" id="hd4"><label for="hd4">Fr</label><input type="checkbox" id="hd5"><label for="hd5">Sa</label><input type="checkbox" id="hd6"><label for="hd6">So</label>
+      </div>
+      <label class="field" for="habitPerWeek" id="habitPerWeekWrap" hidden>Wie oft pro Woche?
+        <select id="habitPerWeek"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select>
+      </label>
+      <div class="row">
+        <button class="btn primary" type="submit" id="habitSave">Hinzufügen</button>
+        <button class="btn ghost" type="button" data-act="cancelHabit" id="habitCancel" hidden>Abbrechen</button>
       </div>
     </form>
     <div class="panel">
@@ -199,23 +285,22 @@ details.help ol{margin:8px 0 0;padding-left:22px;display:flex;flex-direction:col
     <div class="row spread">
       <h2 id="calTitle"></h2>
       <div class="row">
-        <button class="btn" type="button" data-act="month" data-n="-1" aria-label="Vorheriger Monat">‹</button>
-        <button class="btn" type="button" data-act="month" data-n="0">Heute</button>
-        <button class="btn" type="button" data-act="month" data-n="1" aria-label="Nächster Monat">›</button>
+        <div class="seg" role="group" aria-label="Ansicht">
+          <button type="button" data-act="calmode" data-m="monat">Monat</button>
+          <button type="button" data-act="calmode" data-m="woche">Woche</button>
+        </div>
+        <button class="btn" type="button" data-act="calnav" data-n="-1" aria-label="Zurück">‹</button>
+        <button class="btn" type="button" data-act="calnav" data-n="0">Heute</button>
+        <button class="btn" type="button" data-act="calnav" data-n="1" aria-label="Weiter">›</button>
       </div>
-    </div>
-    <div class="row spread">
-      <div class="seg" role="group" aria-label="Kalender anzeigen">
-        <button type="button" data-act="filter" data-f="alle">Alle</button>
-        <button type="button" data-act="filter" data-f="privat">Nur privat</button>
-        <button type="button" data-act="filter" data-f="gemeinsam">Nur gemeinsam</button>
-      </div>
-      <div class="legend"><span><i class="pip"></i>Privat – siehst nur du</span><span><i class="pip shared"></i>Gemeinsam – sehen alle Eingeladenen</span></div>
     </div>
     <div class="cal-layout">
       <div class="panel">
-        <div class="grid7"><div class="dow">Mo</div><div class="dow">Di</div><div class="dow">Mi</div><div class="dow">Do</div><div class="dow">Fr</div><div class="dow">Sa</div><div class="dow">So</div></div>
-        <div class="grid7" id="calGrid"></div>
+        <div id="calMonth">
+          <div class="grid7"><div class="dow">Mo</div><div class="dow">Di</div><div class="dow">Mi</div><div class="dow">Do</div><div class="dow">Fr</div><div class="dow">Sa</div><div class="dow">So</div></div>
+          <div class="grid7" id="calGrid"></div>
+        </div>
+        <div id="calWeek" class="wk" hidden></div>
       </div>
       <div class="view">
         <div class="panel"><h3 id="dayTitle"></h3><div id="dayList"></div></div>
@@ -227,28 +312,29 @@ details.help ol{margin:8px 0 0;padding-left:22px;display:flex;flex-direction:col
             <label class="field" for="evStart">Von<input type="time" id="evStart"></label>
             <label class="field" for="evEnd">Bis<input type="time" id="evEnd"></label>
           </div>
-          <div>
-            <div class="seg" role="radiogroup" aria-label="In welchen Kalender?">
-              <input type="radio" name="evKind" id="evPriv" value="privat" checked><label for="evPriv">Privat</label>
-              <input type="radio" name="evKind" id="evShared" value="gemeinsam"><label for="evShared">Gemeinsam</label>
+          <details class="more" id="evMore">
+            <summary>Weitere Optionen</summary>
+            <div>
+              <div class="row">
+                <label class="field" for="evEndDate">Letzter Tag (bei mehreren Tagen)<input type="date" id="evEndDate"></label>
+              </div>
+              <div class="row">
+                <label class="field" for="evRepeat">Wiederholen
+                  <select id="evRepeat"><option value="">Nie</option><option value="daily">Täglich</option><option value="weekly">Wöchentlich</option><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select>
+                </label>
+                <label class="field" for="evUntil">Wiederholung endet am<input type="date" id="evUntil"></label>
+              </div>
+              <label class="field" for="evRemind">Erinnerung
+                <select id="evRemind"><option value="">Keine</option><option value="0">Zum Beginn</option><option value="10">10 Minuten vorher</option><option value="30">30 Minuten vorher</option><option value="60">1 Stunde vorher</option><option value="1440">1 Tag vorher</option></select>
+              </label>
+              <label class="field" for="evNote">Notiz<textarea id="evNote" maxlength="300"></textarea></label>
             </div>
-            <p class="small muted" id="kindHint" style="margin-top:6px"></p>
-          </div>
-          <label class="field" for="evNote">Notiz (optional)<textarea id="evNote" maxlength="300"></textarea></label>
+          </details>
           <div class="row">
             <button class="btn primary" type="submit" id="evSave">Termin speichern</button>
-            <button class="btn ghost" type="button" data-act="cancelEdit" id="evCancel" hidden>Abbrechen</button>
+            <button class="btn ghost" type="button" data-act="cancelEv" id="evCancel" hidden>Abbrechen</button>
           </div>
         </form>
-        <details class="panel help">
-          <summary>Gemeinsamen Kalender mit jemandem teilen</summary>
-          <ol>
-            <li>Öffne das Teilen-Menü dieser Seite und lade die Person per E-Mail ein.</li>
-            <li>Gib ihr das Recht zu bearbeiten, damit sie selbst Termine eintragen kann. Mit reinem Leserecht sieht sie die gemeinsamen Termine nur.</li>
-            <li>Schick ihr den Link. Sie meldet sich an und sieht sofort alle Termine, die als „Gemeinsam“ gespeichert sind.</li>
-          </ol>
-          <p class="muted">Private Termine, Gewohnheiten und Aufgaben bleiben bei jeder Person für sich. Auch du siehst die privaten Einträge der anderen nicht.</p>
-        </details>
       </div>
     </div>
   </section>
@@ -257,10 +343,27 @@ details.help ol{margin:8px 0 0;padding-left:22px;display:flex;flex-direction:col
   <section class="view" id="v-aufgaben" hidden>
     <h2>Aufgaben</h2>
     <form class="panel" id="todoForm">
+      <h3 id="todoFormTitle">Neue Aufgabe</h3>
       <div class="row">
-        <input class="grow" type="text" id="todoText" maxlength="140" placeholder="Was ist zu tun?" aria-label="Neue Aufgabe">
-        <label class="field" for="todoDue">Fällig am (optional)<input type="date" id="todoDue"></label>
-        <button class="btn primary" type="submit" style="align-self:flex-end">Hinzufügen</button>
+        <input class="grow" type="text" id="todoText" maxlength="140" placeholder="Was ist zu tun?" aria-label="Aufgabe" required>
+        <label class="field" for="todoDue">Fällig am<input type="date" id="todoDue"></label>
+      </div>
+      <details class="more" id="todoMore">
+        <summary>Weitere Optionen</summary>
+        <div class="row" style="flex-direction:row;align-items:flex-end">
+          <label class="field" for="todoPrio">Priorität
+            <select id="todoPrio"><option value="0">Normal</option><option value="1">Mittel</option><option value="2">Hoch</option></select>
+          </label>
+          <label class="field" for="todoList">Liste<input type="text" id="todoList" maxlength="30" list="todoLists" placeholder="z. B. Haushalt"></label>
+          <datalist id="todoLists"></datalist>
+          <label class="field" for="todoRepeat">Wiederholen
+            <select id="todoRepeat"><option value="">Nie</option><option value="daily">Täglich</option><option value="weekly">Wöchentlich</option><option value="monthly">Monatlich</option></select>
+          </label>
+        </div>
+      </details>
+      <div class="row">
+        <button class="btn primary" type="submit" id="todoSave">Hinzufügen</button>
+        <button class="btn ghost" type="button" data-act="cancelTodo" id="todoCancel" hidden>Abbrechen</button>
       </div>
     </form>
     <div class="panel">
@@ -271,263 +374,487 @@ details.help ol{margin:8px 0 0;padding-left:22px;display:flex;flex-direction:col
         </div>
         <button class="btn ghost" type="button" data-act="clearDone" id="clearDone" hidden>Erledigte entfernen</button>
       </div>
-      <div id="todoList"></div>
+      <div class="seg" id="listFilter" role="group" aria-label="Nach Liste filtern" hidden></div>
+      <div id="todoList2"></div>
+    </div>
+  </section>
+
+  <!-- MEHR -->
+  <section class="view" id="v-mehr" hidden>
+    <h2>Mehr</h2>
+    <div class="cols">
+      <div class="panel">
+        <h3>Sicherung</h3>
+        <p>Alle Einträge liegen nur in diesem Browser auf diesem Gerät. Mit einer Sicherungsdatei kannst du sie aufbewahren oder auf ein anderes Gerät übertragen.</p>
+        <p class="small muted" id="backupInfo"></p>
+        <div class="row">
+          <button class="btn primary" type="button" data-act="export">Sicherung herunterladen</button>
+          <label class="btn filebtn" for="importFile">Sicherung einspielen<input type="file" id="importFile" accept="application/json,.json"></label>
+        </div>
+        <div id="importConfirm" hidden>
+          <p id="importText"></p>
+          <div class="row" style="margin-top:8px"><button class="btn primary" type="button" data-act="importDo">Aktuelle Daten ersetzen</button><button class="btn ghost" type="button" data-act="importCancel">Abbrechen</button></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Erinnerungen</h3>
+        <p>Für Termine mit eingestellter Erinnerung und für Aufgaben, die heute fällig sind. Erinnerungen kommen nur, solange Tagwerk geöffnet ist.</p>
+        <p class="small muted" id="remInfo"></p>
+        <div class="row"><button class="btn primary" type="button" data-act="remToggle" id="remBtn">Erinnerungen einschalten</button></div>
+      </div>
+      <div class="panel">
+        <h3>Als App installieren</h3>
+        <p><strong>iPhone und iPad:</strong> in Safari auf „Teilen“ tippen, dann „Zum Home-Bildschirm“.</p>
+        <p><strong>Android und Computer:</strong> im Browsermenü „App installieren“ oder „Zum Startbildschirm hinzufügen“ wählen.</p>
+        <p class="small muted">Danach öffnet sich Tagwerk wie eine eigene App und funktioniert auch ohne Internet.</p>
+        <div class="row"><button class="btn primary" type="button" data-act="install" id="installBtn" hidden>Jetzt installieren</button></div>
+      </div>
+      <div class="panel">
+        <h3>Gemeinsamer Kalender</h3>
+        <p>Noch nicht verfügbar. Dafür müssen die Termine online gespeichert werden, und das ist in dieser Version nicht eingerichtet.</p>
+      </div>
     </div>
   </section>
 </div>
-<div id="toast" hidden role="status"></div>
+<div id="toast" hidden role="status"><span id="toastText"></span><button type="button" id="toastUndo" hidden>Rückgängig</button></div>
 
 <script>
 (function(){
 const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const parse=s=>{const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])};
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const monday=d=>addDays(d,-((d.getDay()+6)%7));
+const dowIdx=d=>(d.getDay()+6)%7;
+const dn=k=>{const p=k.split('-');return Math.round(Date.UTC(+p[0],p[1]-1,+p[2])/864e5)};
 const today=()=>ymd(new Date());
+const mins=t=>+t.slice(0,2)*60+ +t.slice(3,5);
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const fmt=(d,o)=>d.toLocaleDateString('de-DE',o);
 const DOW=['Mo','Di','Mi','Do','Fr','Sa','So'];
 const DATE_RE=/^\d{4}-\d{2}-\d{2}$/, TIME_RE=/^\d{2}:\d{2}$/;
+const REP={daily:'Täglich',weekly:'Wöchentlich',monthly:'Monatlich',yearly:'Jährlich'};
+const REM={0:'Erinnerung zum Beginn',10:'Erinnerung 10 Min. vorher',30:'Erinnerung 30 Min. vorher',60:'Erinnerung 1 Std. vorher',1440:'Erinnerung 1 Tag vorher'};
+const VIEWS=['heute','gewohnheiten','kalender','aufgaben','mehr'];
+const KINDS=['habits','todos','events'];
 const isoWeek=d=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)};
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
 
-const S={habits:[],todos:[],events:[],shared:[]};
-const ui={view:'heute',week:monday(new Date()),month:new Date(new Date().getFullYear(),new Date().getMonth(),1),sel:today(),filter:'alle',tfilter:'offen',edit:null};
-let mode='loading', privCol=null, sharedCol=null, userCap=null, myId=null, canShare=false, people={};
+const S={habits:[],todos:[],events:[]};
+const now0=new Date();
+const ui={view:'heute',q:'',week:monday(now0),month:new Date(now0.getFullYear(),now0.getMonth(),1),sel:today(),cal:'monat',tfilter:'offen',lfilter:'',editEv:null,editTodo:null,editHabit:null,stats:null};
+let pendingImport=null, installEvt=null;
 
-/* ---------- Speichern ---------- */
-const writing={},dirty={};
-function save(kind){
-  if(mode!=='db'){try{localStorage.setItem('tagwerk_'+kind,JSON.stringify(S[kind]))}catch(e){}return}
-  dirty[kind]=true; if(writing[kind])return; writing[kind]=true;
-  (async()=>{
-    while(dirty[kind]){dirty[kind]=false;
-      try{await privCol.doc(kind).set({items:clone(S[kind])})}
-      catch(e){toast(e&&e.code==='invalid_argument'?'Du hast hier nur Leserechte. Diese Änderung wurde nicht gespeichert.':'Speichern hat nicht geklappt. Bitte versuch es gleich noch einmal.');break}
+/* ---------- Daten ---------- */
+function clean(kind,items){
+  if(!Array.isArray(items))return [];
+  return items.filter(x=>x&&typeof x.id==='string').map(x=>{
+    if(kind==='habits'){
+      const days=Array.isArray(x.days)&&x.days.length===7?x.days.map(Boolean):[1,1,1,1,1,1,1].map(Boolean);
+      const log={};if(x.log&&typeof x.log==='object')Object.keys(x.log).forEach(k=>{if(DATE_RE.test(k)&&x.log[k])log[k]=1});
+      return {id:x.id,name:String(x.name||'').slice(0,60),plan:x.plan==='week'?'week':'days',days:days.some(Boolean)?days:days.map(()=>true),perWeek:Math.min(6,Math.max(1,parseInt(x.perWeek,10)||3)),log:log};
     }
-    writing[kind]=false;
-  })();
+    if(kind==='todos')return {id:x.id,text:String(x.text||'').slice(0,140),due:DATE_RE.test(x.due)?x.due:'',done:!!x.done,doneAt:x.doneAt||null,prio:[1,2].includes(+x.prio)?+x.prio:0,list:String(x.list||'').trim().slice(0,30),repeat:['daily','weekly','monthly'].includes(x.repeat)?x.repeat:''};
+    if(!DATE_RE.test(x.date))return null;
+    const rem=(x.remind===''||x.remind==null)?'':+x.remind;
+    return {id:x.id,title:String(x.title||'').slice(0,80),date:x.date,endDate:(DATE_RE.test(x.endDate)&&x.endDate>x.date)?x.endDate:'',start:TIME_RE.test(x.start)?x.start:'',end:TIME_RE.test(x.end)?x.end:'',note:String(x.note||'').slice(0,300),repeat:REP[x.repeat]?x.repeat:'',until:(DATE_RE.test(x.until)&&x.until>=x.date)?x.until:'',remind:[0,10,30,60,1440].includes(rem)?rem:''};
+  }).filter(Boolean);
 }
+function load(){KINDS.forEach(k=>{try{S[k]=clean(k,JSON.parse(ls.get('tagwerk_'+k)||'[]'))}catch(e){S[k]=[]}})}
+function save(kind){if(!ls.set('tagwerk_'+kind,JSON.stringify(S[kind])))toast('Speichern hat nicht geklappt. Der Browser-Speicher ist voll oder gesperrt.')}
 function change(kind){save(kind);render()}
-async function sharedOp(fn){
-  try{await fn()}catch(e){
-    if(e&&e.code==='invalid_argument'){canShare=false;toast('Du darfst gemeinsame Termine ansehen, aber nicht ändern.')}
-    else toast('Der gemeinsame Termin konnte nicht gespeichert werden. Bitte versuch es noch einmal.');
-    render();
-  }
-}
+function withUndo(kind,msg,fn){const prev=clone(S[kind]);fn();change(kind);toast(msg,()=>{S[kind]=prev;change(kind)})}
 let toastT;
-function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,4500)}
-
-/* ---------- Abfragen ---------- */
-function eventsOn(k,filter){
-  const f=filter||ui.filter, out=[];
-  if(f!=='gemeinsam')S.events.forEach(e=>{if(e.date===k)out.push(Object.assign({shared:false},e))});
-  if(f!=='privat')S.shared.forEach(e=>{if(e.date===k)out.push(Object.assign({shared:true},e))});
-  return out.sort((a,b)=>(a.start||'').localeCompare(b.start||'')||a.title.localeCompare(b.title));
+function toast(m,undo){
+  $('#toastText').textContent=m;const u=$('#toastUndo');u.hidden=!undo;u.onclick=undo?()=>{undo();$('#toast').hidden=true}:null;
+  $('#toast').hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>$('#toast').hidden=true,undo?7000:4500);
 }
+
+/* ---------- Termine ---------- */
+const spanOf=e=>e.endDate?Math.min(60,dn(e.endDate)-dn(e.date)):0;
+function matches(e,sk,diff){
+  if(!e.repeat)return diff===0;
+  if(e.repeat==='daily')return true;
+  if(e.repeat==='weekly')return diff%7===0;
+  const a=parse(e.date),b=parse(sk);
+  if(e.repeat==='monthly')return a.getDate()===b.getDate();
+  return a.getDate()===b.getDate()&&a.getMonth()===b.getMonth();
+}
+/* Starttag des Vorkommens, das den Tag k abdeckt, sonst null */
+function occStart(e,k){
+  const span=spanOf(e),K=dn(k),D=dn(e.date);
+  for(let off=0;off<=span;off++){
+    if(K-off<D)break;
+    const sk=off?ymd(addDays(parse(k),-off)):k;
+    if(e.until&&sk>e.until)continue;
+    if(matches(e,sk,K-off-D))return sk;
+  }
+  return null;
+}
+function eventsOn(k){
+  const out=[];
+  S.events.forEach(e=>{const s=occStart(e,k);if(s)out.push({e:e,s:s,first:s===k,span:spanOf(e)})});
+  const key=o=>(o.span>0&&!o.first)?'':(o.e.start||'');
+  return out.sort((a,b)=>key(a).localeCompare(key(b))||a.e.title.localeCompare(b.e.title));
+}
+function timeStr(o){
+  const e=o.e;
+  if(o.span>0){const last=addDays(parse(o.s),o.span);return (o.first&&e.start?'ab '+e.start+' · ':'')+'bis '+fmt(last,{weekday:'short',day:'numeric',month:'short'})}
+  return e.start?(e.start+(e.end?'–'+e.end:'')):'Ganztägig';
+}
+function nextOcc(e){const d=new Date();for(let i=0;i<400;i++){const k=ymd(addDays(d,i));if(occStart(e,k)===k)return k}return e.date}
+
+/* ---------- Gewohnheiten ---------- */
+function planText(h){
+  if(h.plan==='week')return h.perWeek+'× pro Woche';
+  if(h.days.every(Boolean))return 'Täglich';
+  if(h.days.slice(0,5).every(Boolean)&&!h.days[5]&&!h.days[6])return 'Werktags';
+  return DOW.filter((x,i)=>h.days[i]).join(', ');
+}
+const weekCount=(h,ws)=>{let n=0;for(let i=0;i<7;i++)if(h.log[ymd(addDays(ws,i))])n++;return n};
+const firstLog=h=>Object.keys(h.log).sort()[0]||null;
 function streak(h){
-  let d=new Date(), n=0;
-  if(!h.log[ymd(d)])d=addDays(d,-1);
-  while(h.log[ymd(d)]){n++;d=addDays(d,-1)}
+  const min=firstLog(h);if(!min)return 0;
+  const t=today();let n=0;
+  if(h.plan==='week'){let w=monday(new Date());if(weekCount(h,w)>=h.perWeek)n++;w=addDays(w,-7);while(ymd(addDays(w,6))>=min&&weekCount(h,w)>=h.perWeek){n++;w=addDays(w,-7)}return n}
+  let d=new Date();
+  for(;;){const k=ymd(d);if(k<min)break;if(h.days[dowIdx(d)]){if(h.log[k])n++;else if(k!==t)break}d=addDays(d,-1)}
   return n;
 }
-const who=e=>{
-  if(!e.shared)return '<span class="tag">Privat</span>';
-  let name='';
-  if(e.by&&e.by===myId)name='von dir';
-  else if(e.by&&people[e.by]&&people[e.by].name)name='von '+people[e.by].name;
-  return '<span class="tag shared">Gemeinsam'+(name?' · '+esc(name):'')+'</span>';
-};
-const timeStr=e=>e.start?(e.start+(e.end?'–'+e.end:'')):'Ganztägig';
-const dueLabel=t=>{
-  if(!t.due)return '';
-  const late=!t.done&&t.due<today();
-  const txt=t.due===today()?'Heute':fmt(parse(t.due),{day:'numeric',month:'short'});
-  return ' <span class="tag '+(late?'late':'')+'">'+(late?'Überfällig · ':'')+esc(txt)+'</span>';
-};
-const loadingOr=(txt)=>'<p class="empty">'+(mode==='loading'?'Lädt …':txt)+'</p>';
+function longest(h){
+  const min=firstLog(h);if(!min)return 0;
+  const t=today();let best=0,run=0;
+  if(h.plan==='week'){for(let w=monday(parse(min));ymd(w)<=t;w=addDays(w,7)){if(weekCount(h,w)>=h.perWeek){run++;if(run>best)best=run}else if(ymd(addDays(w,6))<t)run=0}return best}
+  for(let d=parse(min);ymd(d)<=t;d=addDays(d,1)){const k=ymd(d);if(!h.days[dowIdx(d)])continue;if(h.log[k]){run++;if(run>best)best=run}else if(k!==t)run=0}
+  return best;
+}
+function rate(h){
+  if(h.plan==='week'){let ok=0,w=monday(new Date());for(let i=0;i<4;i++){if(weekCount(h,w)>=h.perWeek)ok++;w=addDays(w,-7)}return 'Ziel in '+ok+' von 4 Wochen erreicht'}
+  const min=firstLog(h);if(!min)return '–';let sch=0,done=0;for(let i=0;i<30;i++){const d=addDays(new Date(),-i),k=ymd(d);if(k<min)break;if(h.days[dowIdx(d)]){if(h.log[k]){sch++;done++}else if(i>0)sch++}}
+  return sch?Math.round(done/sch*100)+' %':'–';
+}
+const unit=(h,n)=>h.plan==='week'?(n===1?'1 Woche':n+' Wochen'):(n===1?'1 Tag':n+' Tage');
+const streakText=h=>{const n=streak(h);return n?unit(h,n)+' in Folge':'Noch keine Serie'};
+const dueToday=h=>h.plan==='week'||h.days[dowIdx(new Date())];
+
+/* ---------- Aufgaben ---------- */
+const sortTodos=a=>a.slice().sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')||y.prio-x.prio||x.id.localeCompare(y.id));
+function advance(k,rep){const d=parse(k);if(rep==='daily')return ymd(addDays(d,1));if(rep==='weekly')return ymd(addDays(d,7));const day=d.getDate(),n=new Date(d.getFullYear(),d.getMonth()+1,1);n.setDate(Math.min(day,new Date(n.getFullYear(),n.getMonth()+1,0).getDate()));return ymd(n)}
+function todoTags(x){
+  let h='';
+  if(x.due){const late=!x.done&&x.due<today();const txt=x.due===today()?'Heute':fmt(parse(x.due),{day:'numeric',month:'short'});h+='<span class="tag '+(late?'late':'plain')+'">'+(late?'Überfällig · ':'')+esc(txt)+'</span>'}
+  if(x.prio===2)h+='<span class="tag hoch">Hoch</span>';else if(x.prio===1)h+='<span class="tag mittel">Mittel</span>';
+  if(x.list)h+='<span class="tag">'+esc(x.list)+'</span>';
+  if(x.repeat)h+='<span class="tag plain">↻ '+REP[x.repeat]+'</span>';
+  return h?'<div class="tags">'+h+'</div>':'';
+}
+function todoLi(x,full){
+  return '<li class="'+(x.done?'done':'')+'"><button class="check" data-act="toggleTodo" data-id="'+esc(x.id)+'" aria-pressed="'+!!x.done+'" aria-label="Erledigt: '+esc(x.text)+'">✓</button><div class="li-main"><span>'+esc(x.text)+'</span>'+todoTags(x)+'</div>'
+    +(full?'<div class="acts">'+(x.done?'':'<button class="btn ghost" data-act="editTodo" data-id="'+esc(x.id)+'">Ändern</button>')+'<button class="btn ghost" data-act="delTodo" data-id="'+esc(x.id)+'">Löschen</button></div>':'')+'</li>';
+}
 
 /* ---------- Darstellung ---------- */
+const empty=t=>'<p class="empty">'+t+'</p>';
 function render(){
-  const t=today(), now=new Date();
+  const now=new Date();
   $('#todayLabel').textContent=fmt(now,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===ui.view));
-  ['heute','gewohnheiten','kalender','aufgaben'].forEach(v=>$('#v-'+v).hidden=v!==ui.view);
-
-  /* Heute */
+  const searching=!!ui.q;
+  $$('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',!searching&&b.dataset.view===ui.view));
+  VIEWS.forEach(v=>$('#v-'+v).hidden=searching||v!==ui.view);
+  $('#v-suche').hidden=!searching;
+  const total=S.habits.length+S.todos.length+S.events.length,last=+ls.get('tagwerk_backup')||0;
+  $('#notice').hidden=searching||ui.view!=='heute'||total<5||(Date.now()-last<14*864e5);
+  if(searching){renderSearch();return}
+  if(ui.view==='heute')renderHeute(now);
+  else if(ui.view==='gewohnheiten')renderHabits();
+  else if(ui.view==='kalender')renderCal();
+  else if(ui.view==='aufgaben')renderTodos();
+  else renderMehr();
+}
+function renderHeute(now){
+  const t=today();
   $('#heuteTitle').textContent=fmt(now,{weekday:'long',day:'numeric',month:'long'});
-  const doneH=S.habits.filter(h=>h.log[t]).length, open=S.todos.filter(x=>!x.done);
-  const evToday=eventsOn(t,'alle').length;
-  $('#heuteSum').textContent=mode==='loading'?'':doneH+' von '+S.habits.length+' Gewohnheiten erledigt · '+evToday+(evToday===1?' Termin':' Termine')+' heute · '+open.length+(open.length===1?' offene Aufgabe':' offene Aufgaben');
-  $('#heuteHabits').innerHTML=S.habits.length?'<ul class="list">'+S.habits.map(h=>
-    '<li><button class="check round" data-act="toggleHabit" data-id="'+esc(h.id)+'" data-d="'+t+'" aria-pressed="'+!!h.log[t]+'" aria-label="'+esc(h.name)+' heute erledigt">✓</button><div class="li-main"><span>'+esc(h.name)+'</span><div class="small muted">'+streakText(streak(h))+'</div></div></li>').join('')+'</ul>'
-    :loadingOr('Noch keine Gewohnheiten.')+(mode==='loading'?'':'<button class="btn" data-act="go" data-view="gewohnheiten">Erste Gewohnheit anlegen</button>');
+  const hs=S.habits.filter(dueToday),doneH=hs.filter(h=>h.log[t]).length,open=S.todos.filter(x=>!x.done),evToday=eventsOn(t).length;
+  $('#heuteSum').textContent=doneH+' von '+hs.length+' Gewohnheiten erledigt · '+evToday+(evToday===1?' Termin':' Termine')+' heute · '+open.length+(open.length===1?' offene Aufgabe':' offene Aufgaben');
+  $('#heuteHabits').innerHTML=hs.length?'<ul class="list">'+hs.map(h=>
+    '<li><button class="check" data-act="toggleHabit" data-id="'+esc(h.id)+'" data-d="'+t+'" aria-pressed="'+!!h.log[t]+'" aria-label="'+esc(h.name)+' heute erledigt">✓</button><div class="li-main"><span>'+esc(h.name)+'</span><div class="small muted">'+(h.plan==='week'?weekCount(h,monday(now))+' von '+h.perWeek+' diese Woche · ':'')+streakText(h)+'</div></div></li>').join('')+'</ul>'
+    :empty(S.habits.length?'Heute steht keine Gewohnheit an.':'Noch keine Gewohnheiten.')+(S.habits.length?'':'<button class="btn" data-act="go" data-view="gewohnheiten">Erste Gewohnheit anlegen</button>');
   let evH='';
-  for(let i=0;i<7;i++){const d=addDays(now,i),k=ymd(d),list=eventsOn(k,'alle');if(!list.length)continue;
+  for(let i=0;i<7;i++){const d=addDays(now,i),k=ymd(d);
     const label=i===0?'Heute':i===1?'Morgen':fmt(d,{weekday:'long',day:'numeric',month:'short'});
-    evH+=list.map(e=>'<li><span class="bar '+(e.shared?'shared':'')+'"></span><div class="li-main"><span>'+esc(e.title)+'</span><div class="small muted num">'+esc(label)+' · '+esc(timeStr(e))+'</div></div>'+who(e)+'</li>').join('')}
-  $('#heuteEvents').innerHTML=evH?'<ul class="list">'+evH+'</ul>':loadingOr('Keine Termine in den nächsten 7 Tagen.')+(mode==='loading'?'':'<button class="btn" data-act="go" data-view="kalender">Termin eintragen</button>');
+    eventsOn(k).forEach(o=>{if(!o.first&&i>0)return;
+      evH+='<li><span class="bar"></span><button class="result" data-act="day" data-d="'+k+'" data-go="1"><div class="li-main"><span>'+esc(o.e.title)+'</span><div class="small muted num">'+esc(label)+' · '+esc(timeStr(o))+'</div></div></button></li>'})}
+  $('#heuteEvents').innerHTML=evH?'<ul class="list">'+evH+'</ul>':empty('Keine Termine in den nächsten 7 Tagen.')+'<button class="btn" data-act="go" data-view="kalender">Termin eintragen</button>';
   const top=sortTodos(open).slice(0,6);
-  $('#heuteTodos').innerHTML=top.length?'<ul class="list">'+top.map(todoLi).join('')+'</ul>'+(open.length>6?'<button class="btn ghost" data-act="go" data-view="aufgaben">Alle '+open.length+' anzeigen</button>':'')
-    :loadingOr('Nichts offen.')+(mode==='loading'?'':'<button class="btn" data-act="go" data-view="aufgaben">Aufgabe hinzufügen</button>');
-
-  /* Gewohnheiten */
-  const ws=ui.week, we=addDays(ws,6);
+  $('#heuteTodos').innerHTML=top.length?'<ul class="list">'+top.map(x=>todoLi(x,false)).join('')+'</ul>'+(open.length>6?'<button class="btn ghost" data-act="go" data-view="aufgaben">Alle '+open.length+' anzeigen</button>':'')
+    :empty('Nichts offen.')+'<button class="btn" data-act="go" data-view="aufgaben">Aufgabe hinzufügen</button>';
+}
+function renderHabits(){
+  const t=today(),ws=ui.week,we=addDays(ws,6);
   $('#weekLabel').textContent='KW '+isoWeek(ws)+' · '+fmt(ws,{day:'numeric',month:'short'})+' – '+fmt(we,{day:'numeric',month:'short'});
   let head='';for(let i=0;i<7;i++){const d=addDays(ws,i);head+='<div class="'+(ymd(d)===t?'now':'')+'">'+DOW[i]+'<br><span class="num">'+d.getDate()+'.</span></div>'}
-  $('#weekHead').innerHTML=head;
-  $('#weekHead').hidden=!S.habits.length;
-  $('#habitList').innerHTML=S.habits.length?S.habits.map(h=>{
-    let cells='';for(let i=0;i<7;i++){const d=addDays(ws,i),k=ymd(d);
-      cells+='<button class="dot'+(k===t?' now':'')+'" data-act="toggleHabit" data-id="'+esc(h.id)+'" data-d="'+k+'" aria-pressed="'+!!h.log[k]+'"'+(k>t?' disabled':'')+' aria-label="'+esc(h.name)+', '+DOW[i]+' '+d.getDate()+'.">✓</button>'}
-    return '<div class="habit"><div class="habit-name"><strong>'+esc(h.name)+'</strong><div class="small muted">'+streakText(streak(h))+' <button class="btn ghost" data-act="delHabit" data-id="'+esc(h.id)+'" data-confirm>Entfernen</button></div></div><div class="week">'+cells+'</div></div>'}).join('')
-    :loadingOr('Noch keine Gewohnheiten. Trag oben die erste ein, dann kannst du sie hier Tag für Tag abhaken.');
-
-  /* Kalender */
-  const y=ui.month.getFullYear(), m=ui.month.getMonth();
-  $('#calTitle').textContent=fmt(ui.month,{month:'long',year:'numeric'});
-  document.querySelectorAll('[data-act=filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===ui.filter));
-  const first=monday(new Date(y,m,1));let g='';
-  for(let i=0;i<42;i++){const d=addDays(first,i),k=ymd(d);
-    if(i>0&&i%7===0&&d.getMonth()!==m)break;
-    const list=eventsOn(k);
-    g+='<button type="button" class="day'+(d.getMonth()!==m?' out':'')+(k===t?' today':'')+(k===ui.sel?' sel':'')+'" data-act="day" data-d="'+k+'" aria-label="'+esc(fmt(d,{weekday:'long',day:'numeric',month:'long'}))+', '+list.length+' Termine"><span class="dnum">'+d.getDate()+'</span>'
-      +list.slice(0,2).map(e=>'<span class="chip '+(e.shared?'shared':'')+'">'+esc((e.start?e.start+' ':'')+e.title)+'</span>').join('')
-      +(list.length>2?'<span class="more">+'+(list.length-2)+' weitere</span>':'')
-      +'<span class="pips">'+list.slice(0,4).map(e=>'<i class="pip '+(e.shared?'shared':'')+'"></i>').join('')+'</span></button>'}
-  $('#calGrid').innerHTML=g;
-  const sd=parse(ui.sel), dl=eventsOn(ui.sel), dueT=S.todos.filter(x=>x.due===ui.sel&&!x.done);
+  $('#weekHead').innerHTML=head;$('#weekHead').hidden=!S.habits.length;
+  $('#habitFormTitle').textContent=ui.editHabit?'Gewohnheit ändern':'Neue Gewohnheit';
+  $('#habitSave').textContent=ui.editHabit?'Änderung speichern':'Hinzufügen';
+  $('#habitCancel').hidden=!ui.editHabit;
+  $('#habitList').innerHTML=S.habits.length?S.habits.map((h,idx)=>{
+    let cells='';for(let i=0;i<7;i++){const d=addDays(ws,i),k=ymd(d),off=h.plan==='days'&&!h.days[i];
+      cells+='<button class="dot'+(k===t?' now':'')+(off?' off':'')+'" data-act="toggleHabit" data-id="'+esc(h.id)+'" data-d="'+k+'" aria-pressed="'+!!h.log[k]+'"'+(k>t?' disabled':'')+' aria-label="'+esc(h.name)+', '+DOW[i]+' '+d.getDate()+'.'+(off?' (nicht geplant)':'')+'">✓</button>'}
+    const id=esc(h.id),wk=h.plan==='week'?' · '+weekCount(h,ws)+' von '+h.perWeek+' in dieser Woche':'';
+    return '<div class="habit"><div class="habit-name"><strong>'+esc(h.name)+'</strong><div class="small muted">'+esc(planText(h))+wk+' · '+streakText(h)+'</div>'
+      +'<div class="acts" style="justify-content:flex-start;margin-left:-8px"><button class="btn ghost" data-act="stats" data-id="'+id+'" aria-expanded="'+(ui.stats===h.id)+'">Auswertung</button><button class="btn ghost" data-act="editHabit" data-id="'+id+'">Ändern</button>'
+      +(idx>0?'<button class="btn ghost" data-act="moveHabit" data-id="'+id+'" data-n="-1" aria-label="Nach oben">↑</button>':'')+(idx<S.habits.length-1?'<button class="btn ghost" data-act="moveHabit" data-id="'+id+'" data-n="1" aria-label="Nach unten">↓</button>':'')
+      +'<button class="btn ghost" data-act="delHabit" data-id="'+id+'">Löschen</button></div></div><div class="week">'+cells+'</div>'+(ui.stats===h.id?statsHtml(h):'')+'</div>'}).join('')
+    :empty('Noch keine Gewohnheiten. Trag oben die erste ein, dann kannst du sie hier Tag für Tag abhaken.');
+}
+function statsHtml(h){
+  const t=today(),min=firstLog(h),end=addDays(monday(new Date()),6);let cells=DOW.map(d=>'<span>'+d+'</span>').join('');
+  for(let i=34;i>=0;i--){const d=addDays(end,-i),k=ymd(d),sch=h.plan==='week'||h.days[dowIdx(d)];
+    cells+='<i class="'+(h.log[k]?'on':k>t?'na':sch&&k<t&&min&&k>=min?'miss':'')+'" title="'+esc(fmt(d,{day:'numeric',month:'short'}))+'"></i>'}
+  return '<div class="stats"><div class="heat" role="img" aria-label="Die letzten fünf Wochen">'+cells+'</div><dl><dt>'+(h.plan==='week'?'Letzte 4 Wochen':'Erfolgsquote (bis zu 30 Tage)')+'</dt><dd>'+esc(rate(h))+'</dd><dt>Aktuelle Serie</dt><dd>'+unit(h,streak(h))+'</dd><dt>Längste Serie</dt><dd>'+unit(h,longest(h))+'</dd><dt>Insgesamt erledigt</dt><dd>'+Object.keys(h.log).length+'×</dd></dl></div>';
+}
+const H=36,H0=6,H1=23;
+function renderCal(){
+  const t=today();
+  $$('[data-act=calmode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===ui.cal));
+  $('#calMonth').hidden=ui.cal!=='monat';$('#calWeek').hidden=ui.cal!=='woche';
+  if(ui.cal==='monat'){
+    const y=ui.month.getFullYear(),m=ui.month.getMonth();
+    $('#calTitle').textContent=fmt(ui.month,{month:'long',year:'numeric'});
+    const first=monday(new Date(y,m,1));let g='';
+    for(let i=0;i<42;i++){const d=addDays(first,i),k=ymd(d);
+      if(i>0&&i%7===0&&d.getMonth()!==m)break;
+      const list=eventsOn(k);
+      g+='<button type="button" class="day'+(d.getMonth()!==m?' out':'')+(k===t?' today':'')+(k===ui.sel?' sel':'')+'" data-act="day" data-d="'+k+'" aria-label="'+esc(fmt(d,{weekday:'long',day:'numeric',month:'long'}))+', '+list.length+' Termine"><span class="dnum">'+d.getDate()+'</span>'
+        +list.slice(0,2).map(o=>'<span class="chip">'+esc((o.e.start&&o.first?o.e.start+' ':'')+o.e.title)+'</span>').join('')
+        +(list.length>2?'<span class="more">+'+(list.length-2)+' weitere</span>':'')
+        +'<span class="pips">'+list.slice(0,4).map(()=>'<i class="pip"></i>').join('')+'</span></button>'}
+    $('#calGrid').innerHTML=g;
+  }else{
+    const ws=monday(parse(ui.sel)),tot=(H1-H0)*H;
+    $('#calTitle').textContent='KW '+isoWeek(ws)+' · '+fmt(ws,{day:'numeric',month:'short'})+' – '+fmt(addDays(ws,6),{day:'numeric',month:'short'});
+    let head='<div></div>',all='<div class="wk-gut"></div>',body='<div class="wk-gut" style="height:'+tot+'px">';
+    for(let h=H0+1;h<H1;h++)body+='<span style="top:'+((h-H0)*H)+'px">'+pad(h)+'</span>';
+    body+='</div>';
+    for(let i=0;i<7;i++){const d=addDays(ws,i),k=ymd(d),list=eventsOn(k);
+      head+='<button type="button" class="wk-day'+(k===t?' today':'')+(k===ui.sel?' sel':'')+'" data-act="day" data-d="'+k+'" aria-label="'+esc(fmt(d,{weekday:'long',day:'numeric',month:'long'}))+'"><span>'+DOW[i]+'</span><span class="dnum">'+d.getDate()+'</span></button>';
+      all+='<div class="wk-allcell">'+list.filter(o=>!o.e.start||o.span>0).map(o=>'<button type="button" class="chip" data-act="day" data-d="'+k+'">'+esc(o.e.title)+'</button>').join('')+'</div>';
+      const lanes=[],items=list.filter(o=>o.e.start&&o.span===0).map(o=>{const s=mins(o.e.start);let en=o.e.end?mins(o.e.end):s+60;if(en<s+30)en=s+30;let l=lanes.findIndex(x=>x<=s);if(l<0){l=lanes.length;lanes.push(en)}else lanes[l]=en;return {o:o,s:s,en:en,l:l}});
+      const w=100/(lanes.length||1);
+      body+='<div class="wk-col'+(k===ui.sel?' sel':'')+'" data-act="slot" data-d="'+k+'" style="height:'+tot+'px">'+items.map(it=>{
+        let top=Math.max(0,(it.s-H0*60)/60*H);top=Math.min(top,tot-18);const bot=Math.min(tot,(it.en-H0*60)/60*H),hh=Math.max(18,bot-top);
+        return '<button type="button" class="wk-ev" data-act="day" data-d="'+k+'" style="top:'+top+'px;height:'+hh+'px;left:'+(it.l*w)+'%;width:'+w+'%" title="'+esc(it.o.e.start+' '+it.o.e.title)+'">'+esc(it.o.e.title)+'</button>'}).join('')+'</div>';
+    }
+    $('#calWeek').innerHTML=head+all+body;
+  }
+  const sd=parse(ui.sel),dl=eventsOn(ui.sel),dueT=S.todos.filter(x=>x.due===ui.sel&&!x.done);
   $('#dayTitle').textContent=fmt(sd,{weekday:'long',day:'numeric',month:'long'});
-  $('#dayList').innerHTML=(dl.length||dueT.length)?'<ul class="list">'+dl.map(e=>{
-      const editable=!e.shared||canShare;
-      return '<li><span class="bar '+(e.shared?'shared':'')+'"></span><div class="li-main"><span><strong>'+esc(e.title)+'</strong></span><div class="small muted num">'+esc(timeStr(e))+'</div>'+(e.note?'<div class="small">'+esc(e.note)+'</div>':'')+'<div style="margin-top:4px">'+who(e)+'</div></div>'
-        +(editable?'<div class="row"><button class="btn ghost" data-act="editEv" data-id="'+esc(e.id)+'" data-s="'+(e.shared?1:0)+'">Ändern</button><button class="btn ghost" data-act="delEv" data-id="'+esc(e.id)+'" data-s="'+(e.shared?1:0)+'" data-confirm>Löschen</button></div>':'')+'</li>'}).join('')
+  $('#dayList').innerHTML=(dl.length||dueT.length)?'<ul class="list">'+dl.map(o=>{const e=o.e,id=esc(e.id);
+      const tags=(e.repeat?'<span class="tag plain">↻ '+REP[e.repeat]+(e.until?' bis '+esc(fmt(parse(e.until),{day:'numeric',month:'short',year:'numeric'})):'')+'</span>':'')+(e.remind!==''?'<span class="tag plain">'+REM[e.remind]+'</span>':'');
+      return '<li><span class="bar"></span><div class="li-main"><span><strong>'+esc(e.title)+'</strong></span><div class="small muted num">'+esc(timeStr(o))+'</div>'+(e.note?'<div class="small">'+esc(e.note)+'</div>':'')+(tags?'<div class="tags">'+tags+'</div>':'')+'</div>'
+        +'<div class="acts"><button class="btn ghost" data-act="editEv" data-id="'+id+'">Ändern</button><button class="btn ghost" data-act="delEv" data-id="'+id+'">'+(e.repeat?'Serie löschen':'Löschen')+'</button></div></li>'}).join('')
       +dueT.map(x=>'<li><span class="bar todo"></span><div class="li-main"><span>'+esc(x.text)+'</span><div class="small muted">Aufgabe fällig</div></div></li>').join('')+'</ul>'
-    :loadingOr('Keine Termine an diesem Tag.');
-  const sharedOk=canShare&&!!sharedCol;
-  $('#evShared').disabled=!sharedOk||!!ui.edit; $('#evPriv').disabled=!!ui.edit;
-  if(!sharedOk&&!ui.edit)$('#evPriv').checked=true;
-  $('#kindHint').textContent=mode==='loading'?'':!sharedCol?'Der gemeinsame Kalender ist in dieser Version nicht verfügbar.':!canShare?'Du kannst gemeinsame Termine ansehen, aber keine eintragen. Bitte die Person, der diese Seite gehört, um Bearbeitungsrechte.':'Privat siehst nur du. Gemeinsam sehen alle, die zu dieser Seite eingeladen sind.';
-  $('#eventFormTitle').textContent=ui.edit?'Termin ändern':'Neuer Termin';
-  $('#evSave').textContent=ui.edit?'Änderung speichern':'Termin speichern';
-  $('#evCancel').hidden=!ui.edit;
-
-  /* Aufgaben */
-  document.querySelectorAll('[data-act=tfilter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===ui.tfilter));
-  const doneT=S.todos.filter(x=>x.done), shown=ui.tfilter==='offen'?sortTodos(open):doneT.slice().sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+    :empty('Keine Termine an diesem Tag.');
+  $('#eventFormTitle').textContent=ui.editEv?'Termin ändern':'Neuer Termin';
+  $('#evSave').textContent=ui.editEv?'Änderung speichern':'Termin speichern';
+  $('#evCancel').hidden=!ui.editEv;
+}
+function renderTodos(){
+  $$('[data-act=tfilter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===ui.tfilter));
+  const lists=[...new Set(S.todos.map(x=>x.list).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  if(ui.lfilter&&!lists.includes(ui.lfilter))ui.lfilter='';
+  $('#todoLists').innerHTML=lists.map(l=>'<option value="'+esc(l)+'">').join('');
+  $('#listFilter').hidden=!lists.length;
+  $('#listFilter').innerHTML=[''].concat(lists).map(l=>'<button type="button" data-act="lfilter" data-l="'+esc(l)+'" aria-pressed="'+(ui.lfilter===l)+'">'+(l?esc(l):'Alle Listen')+'</button>').join('');
+  const inList=x=>!ui.lfilter||x.list===ui.lfilter;
+  const open=S.todos.filter(x=>!x.done&&inList(x)),doneT=S.todos.filter(x=>x.done&&inList(x));
+  const shown=ui.tfilter==='offen'?sortTodos(open):doneT.slice().sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
   $('#clearDone').hidden=!(ui.tfilter==='erledigt'&&doneT.length);
-  $('#todoList').innerHTML=shown.length?'<ul class="list">'+shown.map(x=>todoLi(x,true)).join('')+'</ul>'
-    :loadingOr(ui.tfilter==='offen'?'Keine offenen Aufgaben. Trag oben ein, was als Nächstes ansteht.':'Noch nichts erledigt.');
+  $('#todoList2').innerHTML=shown.length?'<ul class="list">'+shown.map(x=>todoLi(x,true)).join('')+'</ul>'
+    :empty(ui.tfilter==='offen'?'Keine offenen Aufgaben. Trag oben ein, was als Nächstes ansteht.':'Noch nichts erledigt.');
+  $('#todoFormTitle').textContent=ui.editTodo?'Aufgabe ändern':'Neue Aufgabe';
+  $('#todoSave').textContent=ui.editTodo?'Änderung speichern':'Hinzufügen';
+  $('#todoCancel').hidden=!ui.editTodo;
 }
-function streakText(n){return n===0?'Noch keine Serie':n===1?'1 Tag in Folge':n+' Tage in Folge'}
-function sortTodos(a){return a.slice().sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')||x.id.localeCompare(y.id))}
-function todoLi(x,del){
-  return '<li class="'+(x.done?'done':'')+'"><button class="check" data-act="toggleTodo" data-id="'+esc(x.id)+'" aria-pressed="'+!!x.done+'" aria-label="Erledigt: '+esc(x.text)+'">✓</button><div class="li-main"><span>'+esc(x.text)+'</span>'+dueLabel(x)+'</div>'
-    +(del===true?'<button class="btn ghost" data-act="delTodo" data-id="'+esc(x.id)+'">Entfernen</button>':'')+'</li>';
+function renderMehr(){
+  const last=+ls.get('tagwerk_backup')||0;
+  $('#backupInfo').textContent=(last?'Letzte Sicherung: '+fmt(new Date(last),{day:'numeric',month:'long',year:'numeric'})+'. ':'Noch keine Sicherung heruntergeladen. ')+'Aktuell gespeichert: '+S.habits.length+' Gewohnheiten, '+S.events.length+' Termine, '+S.todos.length+' Aufgaben.';
+  $('#importConfirm').hidden=!pendingImport;
+  if(pendingImport)$('#importText').textContent='Die Datei enthält '+pendingImport.habits.length+' Gewohnheiten, '+pendingImport.events.length+' Termine und '+pendingImport.todos.length+' Aufgaben. Deine aktuellen Einträge werden damit ersetzt.';
+  const on=remOn(),sup='Notification' in window,perm=sup?Notification.permission:'';
+  $('#remBtn').textContent=on?'Erinnerungen ausschalten':'Erinnerungen einschalten';
+  $('#remBtn').className='btn'+(on?'':' primary');
+  $('#remInfo').textContent=on?(perm==='granted'?'Eingeschaltet. Du bekommst eine Mitteilung des Geräts.':'Eingeschaltet. Mitteilungen des Geräts sind hier nicht erlaubt oder nicht möglich, deshalb erscheint der Hinweis nur innerhalb von Tagwerk.'):'Ausgeschaltet.';
+  $('#installBtn').hidden=!installEvt;
+}
+function renderSearch(){
+  const q=ui.q.toLowerCase(),has=s=>String(s||'').toLowerCase().includes(q);let h='';
+  S.events.filter(e=>has(e.title)||has(e.note)).forEach(e=>{const k=nextOcc(e);
+    h+='<li><span class="bar"></span><button class="result" data-act="day" data-d="'+k+'" data-go="1"><div class="li-main"><span>'+esc(e.title)+'</span><div class="small muted">Termin · '+esc(fmt(parse(k),{weekday:'short',day:'numeric',month:'short',year:'numeric'}))+(e.repeat?' · '+REP[e.repeat]:'')+'</div></div></button></li>'});
+  S.todos.filter(x=>has(x.text)||has(x.list)).forEach(x=>{
+    h+='<li><span class="bar todo"></span><button class="result" data-act="goTodo" data-done="'+(x.done?1:0)+'"><div class="li-main"><span>'+esc(x.text)+'</span><div class="small muted">Aufgabe · '+(x.done?'erledigt':'offen')+(x.list?' · '+esc(x.list):'')+'</div></div></button></li>'});
+  S.habits.filter(x=>has(x.name)).forEach(x=>{
+    h+='<li><span class="bar todo"></span><button class="result" data-act="go" data-view="gewohnheiten"><div class="li-main"><span>'+esc(x.name)+'</span><div class="small muted">Gewohnheit · '+esc(planText(x))+'</div></div></button></li>'});
+  $('#searchList').innerHTML=h?'<ul class="list">'+h+'</ul>':empty('Nichts gefunden für „'+esc(ui.q)+'“.');
 }
 
-/* ---------- Aktionen ---------- */
-function resetEventForm(){ui.edit=null;$('#evTitle').value='';$('#evStart').value='';$('#evEnd').value='';$('#evNote').value='';$('#evDate').value=ui.sel}
-function setView(v){ui.view=v;try{history.replaceState(null,'','#'+v)}catch(e){}render()}
+/* ---------- Formulare ---------- */
+function syncHabitPlan(){const p=$('#habitPlan').value;$('#habitDays').hidden=p!=='tage';$('#habitPerWeekWrap').hidden=p!=='woche'}
+function resetHabitForm(){ui.editHabit=null;$('#habitName').value='';$('#habitPlan').value='taeglich';for(let i=0;i<7;i++)$('#hd'+i).checked=false;$('#habitPerWeek').value='3';syncHabitPlan()}
+function resetEventForm(){ui.editEv=null;['evTitle','evStart','evEnd','evEndDate','evUntil','evNote'].forEach(i=>$('#'+i).value='');$('#evRepeat').value='';$('#evRemind').value='';$('#evDate').value=ui.sel;$('#evMore').open=false}
+function resetTodoForm(){ui.editTodo=null;$('#todoText').value='';$('#todoDue').value='';$('#todoPrio').value='0';$('#todoList').value='';$('#todoRepeat').value='';$('#todoMore').open=false}
+function clearSearch(){ui.q='';$('#search').value=''}
+function setView(v){clearSearch();ui.view=v;try{history.replaceState(null,'','#'+v)}catch(e){}render();window.scrollTo(0,0)}
+function selectDay(k){ui.sel=k;const d=parse(k);ui.month=new Date(d.getFullYear(),d.getMonth(),1);if(!ui.editEv)$('#evDate').value=k}
+
+$('#habitPlan').addEventListener('change',syncHabitPlan);
+$('#search').addEventListener('input',e=>{ui.q=e.target.value.trim();render()});
+$('#toast').addEventListener('click',e=>e.stopPropagation());
 
 document.addEventListener('click',ev=>{
   const tab=ev.target.closest('nav.tabs button');if(tab){setView(tab.dataset.view);return}
   const b=ev.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,id=b.dataset.id;
-  if(b.hasAttribute('data-confirm')&&!b.hasAttribute('data-armed')){
-    b.setAttribute('data-armed','');b.dataset.label=b.textContent;b.textContent='Wirklich? Nochmal tippen';
-    setTimeout(()=>{if(b.isConnected&&b.hasAttribute('data-armed')){b.removeAttribute('data-armed');b.textContent=b.dataset.label}},3500);return}
   if(a==='go')setView(b.dataset.view);
+  else if(a==='goTodo'){ui.tfilter=b.dataset.done==='1'?'erledigt':'offen';ui.lfilter='';setView('aufgaben')}
   else if(a==='toggleHabit'){const h=S.habits.find(x=>x.id===id);if(!h)return;const k=b.dataset.d;if(h.log[k])delete h.log[k];else h.log[k]=1;change('habits')}
-  else if(a==='delHabit'){S.habits=S.habits.filter(x=>x.id!==id);change('habits')}
+  else if(a==='delHabit'){if(ui.editHabit===id)resetHabitForm();withUndo('habits','Gewohnheit gelöscht.',()=>{S.habits=S.habits.filter(x=>x.id!==id)})}
+  else if(a==='moveHabit'){const i=S.habits.findIndex(x=>x.id===id),j=i+ +b.dataset.n;if(i<0||j<0||j>=S.habits.length)return;const x=S.habits[i];S.habits[i]=S.habits[j];S.habits[j]=x;change('habits')}
+  else if(a==='stats'){ui.stats=ui.stats===id?null:id;render()}
+  else if(a==='editHabit'){const h=S.habits.find(x=>x.id===id);if(!h)return;ui.editHabit=id;$('#habitName').value=h.name;
+    const all=h.days.every(Boolean),wd=h.days.slice(0,5).every(Boolean)&&!h.days[5]&&!h.days[6];
+    $('#habitPlan').value=h.plan==='week'?'woche':all?'taeglich':wd?'werktags':'tage';
+    for(let i=0;i<7;i++)$('#hd'+i).checked=h.plan==='days'&&!all&&h.days[i];$('#habitPerWeek').value=String(h.perWeek);syncHabitPlan();render();$('#habitName').focus();$('#habitForm').scrollIntoView({block:'nearest'})}
+  else if(a==='cancelHabit'){resetHabitForm();render()}
   else if(a==='week'){const n=+b.dataset.n;ui.week=n?addDays(ui.week,7*n):monday(new Date());render()}
-  else if(a==='month'){const n=+b.dataset.n,t=new Date();ui.month=n?new Date(ui.month.getFullYear(),ui.month.getMonth()+n,1):new Date(t.getFullYear(),t.getMonth(),1);if(!n){ui.sel=today();if(!ui.edit)$('#evDate').value=ui.sel}render()}
-  else if(a==='filter'){ui.filter=b.dataset.f;render()}
-  else if(a==='day'){ui.sel=b.dataset.d;const d=parse(ui.sel);ui.month=new Date(d.getFullYear(),d.getMonth(),1);if(!ui.edit)$('#evDate').value=ui.sel;render()}
-  else if(a==='editEv'){const sh=b.dataset.s==='1',e=(sh?S.shared:S.events).find(x=>x.id===id);if(!e)return;
-    ui.edit={id:id,shared:sh};$('#evTitle').value=e.title;$('#evDate').value=e.date;$('#evStart').value=e.start||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';
-    (sh?$('#evShared'):$('#evPriv')).checked=true;render();$('#evTitle').focus()}
-  else if(a==='delEv'){if(ui.edit&&ui.edit.id===id)resetEventForm();
-    if(b.dataset.s==='1'){sharedOp(()=>sharedCol.doc(id).delete())}else{S.events=S.events.filter(x=>x.id!==id);change('events')}}
-  else if(a==='cancelEdit'){resetEventForm();render()}
-  else if(a==='toggleTodo'){const x=S.todos.find(q=>q.id===id);if(!x)return;x.done=!x.done;x.doneAt=x.done?Date.now():null;change('todos')}
-  else if(a==='delTodo'){S.todos=S.todos.filter(x=>x.id!==id);change('todos')}
+  else if(a==='calmode'){ui.cal=b.dataset.m;render()}
+  else if(a==='calnav'){const n=+b.dataset.n;
+    if(!n)selectDay(today());
+    else if(ui.cal==='woche')selectDay(ymd(addDays(parse(ui.sel),7*n)));
+    else ui.month=new Date(ui.month.getFullYear(),ui.month.getMonth()+n,1);
+    render()}
+  else if(a==='day'){selectDay(b.dataset.d);if(b.dataset.go)setView('kalender');else render()}
+  else if(a==='slot'){selectDay(b.dataset.d);
+    if(!ui.editEv){const r=b.getBoundingClientRect(),h=Math.min(H1-1,Math.max(H0,Math.floor((ev.clientY-r.top)/H)+H0));$('#evStart').value=pad(h)+':00';$('#evEnd').value=''}
+    render();if(window.matchMedia('(min-width:861px)').matches)$('#evTitle').focus()}
+  else if(a==='editEv'){const e=S.events.find(x=>x.id===id);if(!e)return;ui.editEv=id;
+    $('#evTitle').value=e.title;$('#evDate').value=e.date;$('#evStart').value=e.start;$('#evEnd').value=e.end;$('#evEndDate').value=e.endDate;$('#evRepeat').value=e.repeat;$('#evUntil').value=e.until;$('#evRemind').value=String(e.remind);$('#evNote').value=e.note;
+    $('#evMore').open=!!(e.endDate||e.repeat||e.remind!==''||e.note);render();$('#evTitle').focus();$('#eventForm').scrollIntoView({block:'nearest'})}
+  else if(a==='delEv'){if(ui.editEv===id)resetEventForm();withUndo('events','Termin gelöscht.',()=>{S.events=S.events.filter(x=>x.id!==id)})}
+  else if(a==='cancelEv'){resetEventForm();render()}
+  else if(a==='toggleTodo'){const x=S.todos.find(q=>q.id===id);if(!x)return;
+    if(!x.done&&x.repeat){const next=Object.assign({},x,{id:newId(),due:advance(x.due||today(),x.repeat)});x.repeat='';S.todos.push(next);toast('Erledigt. Die nächste Wiederholung ist am '+fmt(parse(next.due),{day:'numeric',month:'long'})+' fällig.')}
+    x.done=!x.done;x.doneAt=x.done?Date.now():null;if(ui.editTodo===id)resetTodoForm();change('todos')}
+  else if(a==='editTodo'){const x=S.todos.find(q=>q.id===id);if(!x)return;ui.editTodo=id;$('#todoText').value=x.text;$('#todoDue').value=x.due;$('#todoPrio').value=String(x.prio);$('#todoList').value=x.list;$('#todoRepeat').value=x.repeat;
+    $('#todoMore').open=!!(x.prio||x.list||x.repeat);render();$('#todoText').focus();$('#todoForm').scrollIntoView({block:'nearest'})}
+  else if(a==='cancelTodo'){resetTodoForm();render()}
+  else if(a==='delTodo'){if(ui.editTodo===id)resetTodoForm();withUndo('todos','Aufgabe gelöscht.',()=>{S.todos=S.todos.filter(x=>x.id!==id)})}
   else if(a==='tfilter'){ui.tfilter=b.dataset.f;render()}
-  else if(a==='clearDone'){S.todos=S.todos.filter(x=>!x.done);change('todos')}
+  else if(a==='lfilter'){ui.lfilter=b.dataset.l;render()}
+  else if(a==='clearDone'){withUndo('todos','Erledigte Aufgaben entfernt.',()=>{S.todos=S.todos.filter(x=>!x.done||(ui.lfilter&&x.list!==ui.lfilter))})}
+  else if(a==='export')exportData();
+  else if(a==='importDo'){if(!pendingImport)return;const prev=clone(S),imp=pendingImport;pendingImport=null;
+    KINDS.forEach(k=>{S[k]=imp[k];save(k)});render();toast('Sicherung eingespielt.',()=>{KINDS.forEach(k=>{S[k]=prev[k];save(k)});render()})}
+  else if(a==='importCancel'){pendingImport=null;render()}
+  else if(a==='remToggle')toggleReminders();
+  else if(a==='install'){if(installEvt){installEvt.prompt();installEvt=null;render()}}
 });
 
-$('#habitForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#habitName').value.trim();if(!n)return;
-  S.habits.push({id:newId(),name:n,log:{}});$('#habitName').value='';change('habits')});
-$('#todoForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#todoText').value.trim();if(!n)return;
-  S.todos.push({id:newId(),text:n,due:$('#todoDue').value||'',done:false,doneAt:null});$('#todoText').value='';$('#todoDue').value='';ui.tfilter='offen';change('todos')});
+$('#habitForm').addEventListener('submit',e=>{e.preventDefault();
+  const name=$('#habitName').value.trim();if(!name)return;
+  const p=$('#habitPlan').value;let days=[1,1,1,1,1,1,1].map(Boolean);
+  if(p==='werktags')days=[1,1,1,1,1,0,0].map(Boolean);
+  if(p==='tage'){days=days.map((x,i)=>$('#hd'+i).checked);if(!days.some(Boolean)){toast('Wähle mindestens einen Wochentag aus.');return}}
+  const data={name:name,plan:p==='woche'?'week':'days',days:days,perWeek:+$('#habitPerWeek').value};
+  if(ui.editHabit){const h=S.habits.find(x=>x.id===ui.editHabit);if(h)Object.assign(h,data)}
+  else S.habits.push(Object.assign({id:newId(),log:{}},data));
+  resetHabitForm();change('habits')});
+
+$('#todoForm').addEventListener('submit',e=>{e.preventDefault();
+  const text=$('#todoText').value.trim();if(!text)return;
+  const data={text:text,due:$('#todoDue').value||'',prio:+$('#todoPrio').value,list:$('#todoList').value.trim(),repeat:$('#todoRepeat').value};
+  if(ui.editTodo){const x=S.todos.find(q=>q.id===ui.editTodo);if(x)Object.assign(x,data)}
+  else{S.todos.push(Object.assign({id:newId(),done:false,doneAt:null},data));ui.tfilter='offen';if(ui.lfilter&&ui.lfilter!==data.list)ui.lfilter=''}
+  resetTodoForm();change('todos')});
+
 $('#eventForm').addEventListener('submit',e=>{e.preventDefault();
   const title=$('#evTitle').value.trim(),date=$('#evDate').value;if(!title||!DATE_RE.test(date))return;
-  let start=$('#evStart').value,end=$('#evEnd').value;if(!start)end='';if(end&&end<start)end='';
-  const body={title:title,date:date,start:start,end:end,note:$('#evNote').value.trim()};
-  const shared=ui.edit?ui.edit.shared:$('#evShared').checked;
-  if(shared){
-    if(!sharedCol||!canShare){toast('Gemeinsame Termine kannst du hier nicht eintragen.');return}
-    if(ui.edit){const old=S.shared.find(x=>x.id===ui.edit.id);body.by=(old&&old.by)||myId||'';const ref=sharedCol.doc(ui.edit.id);sharedOp(()=>ref.set(body))}
-    else{body.by=myId||'';sharedOp(()=>sharedCol.add(body))}
-  }else{
-    if(ui.edit){const i=S.events.findIndex(x=>x.id===ui.edit.id);if(i>=0)S.events[i]=Object.assign({id:ui.edit.id},body)}
-    else S.events.push(Object.assign({id:newId()},body));
-    save('events');
-  }
-  ui.sel=date;const d=parse(date);ui.month=new Date(d.getFullYear(),d.getMonth(),1);
-  resetEventForm();render();
+  let start=$('#evStart').value,end=$('#evEnd').value,endDate=$('#evEndDate').value,until=$('#evUntil').value;const repeat=$('#evRepeat').value;
+  if(endDate&&endDate<date){toast('Der letzte Tag liegt vor dem Datum des Termins.');return}
+  if(until&&until<date){toast('Das Ende der Wiederholung liegt vor dem ersten Termin.');return}
+  if(endDate===date)endDate='';
+  if(!start)end='';if(end&&!endDate&&end<start)end='';
+  if(!repeat)until='';
+  const r=$('#evRemind').value;
+  const data={title:title,date:date,endDate:endDate,start:start,end:end,note:$('#evNote').value.trim(),repeat:repeat,until:until,remind:r===''?'':+r};
+  if(ui.editEv){const i=S.events.findIndex(x=>x.id===ui.editEv);if(i>=0)S.events[i]=Object.assign({id:ui.editEv},data)}
+  else S.events.push(Object.assign({id:newId()},data));
+  if(data.remind!==''&&!remOn())toast('Termin gespeichert. Schalte unter „Mehr“ die Erinnerungen ein, damit du erinnert wirst.');
+  selectDay(date);resetEventForm();change('events')});
+
+/* ---------- Sicherung ---------- */
+function exportData(){
+  const data={app:'tagwerk',version:2,exported:new Date().toISOString(),habits:S.habits,todos:S.todos,events:S.events};
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}));a.download='tagwerk-sicherung-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    ls.set('tagwerk_backup',String(Date.now()));render();toast('Sicherung heruntergeladen.')}
+  catch(e){toast('Die Sicherung konnte nicht erstellt werden.')}
+}
+$('#importFile').addEventListener('change',e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d||!Array.isArray(d.habits)||!Array.isArray(d.todos)||!Array.isArray(d.events))throw 0;
+      pendingImport={habits:clean('habits',d.habits),todos:clean('todos',d.todos),events:clean('events',d.events)};render()}
+    catch(x){toast('Das ist keine gültige Tagwerk-Sicherung.')}};
+  rd.onerror=()=>toast('Die Datei konnte nicht gelesen werden.');
+  rd.readAsText(f);
 });
 
-/* ---------- Start ---------- */
-function cleanPrivate(kind,items){
-  if(!Array.isArray(items))return [];
-  return items.filter(x=>x&&typeof x.id==='string').map(x=>{
-    if(kind==='habits')return {id:x.id,name:String(x.name||''),log:(x.log&&typeof x.log==='object')?x.log:{}};
-    if(kind==='todos')return {id:x.id,text:String(x.text||''),due:DATE_RE.test(x.due)?x.due:'',done:!!x.done,doneAt:x.doneAt||null};
-    return DATE_RE.test(x.date)?{id:x.id,title:String(x.title||''),date:x.date,start:TIME_RE.test(x.start)?x.start:'',end:TIME_RE.test(x.end)?x.end:'',note:String(x.note||'')}:null;
-  }).filter(Boolean);
-}
-async function refreshPeople(){
-  if(!userCap)return;
-  const ids=[...new Set(S.shared.map(e=>e.by).filter(Boolean))];if(!ids.length)return;
-  try{people=await userCap.profiles(ids);render()}catch(e){}
-}
-async function init(){
-  const h=(location.hash||'').slice(1);if(['heute','gewohnheiten','kalender','aufgaben'].includes(h))ui.view=h;
-  $('#evDate').value=ui.sel;render();
-  let db=null;
-  try{if(window.claude&&window.claude.use){const r=await Promise.all([window.claude.use('db'),window.claude.use('user')]);db=r[0];userCap=r[1]}}catch(e){}
-  if(userCap){try{myId=await userCap.id();const c=await userCap.can('data.write');canShare=c!==false}catch(e){}}
-  else canShare=!!db;
-  const st=$('#status');
-  if(db&&myId){
-    mode='db';privCol=db.collection('data/users/'+myId);st.hidden=true;
-    ['habits','todos','events'].forEach(kind=>{
-      privCol.doc(kind).onSnapshot(s=>{
-        if(writing[kind]||dirty[kind]||s.metadata.hasPendingWrites)return;
-        S[kind]=s.exists?cleanPrivate(kind,clone((s.data()||{}).items||[])):[];render();
-      },()=>{});
-    });
-  }else{
-    mode='local';
-    ['habits','todos','events'].forEach(kind=>{try{S[kind]=cleanPrivate(kind,JSON.parse(localStorage.getItem('tagwerk_'+kind)||'[]'))}catch(e){S[kind]=[]}});
-    st.textContent='Deine Einträge werden nur in diesem Browser auf diesem Gerät gespeichert. Der gemeinsame Kalender ist in dieser Version nicht verfügbar.';
-  }
-  if(db){
-    sharedCol=db.collection('shared_events');
-    sharedCol.onSnapshot(s=>{
-      S.shared=s.docs.map(d=>{const x=d.data()||{};
-        return (typeof x.title==='string'&&DATE_RE.test(x.date))?{id:d.id,title:x.title.slice(0,80),date:x.date,start:TIME_RE.test(x.start)?x.start:'',end:TIME_RE.test(x.end)?x.end:'',note:String(x.note||'').slice(0,300),by:typeof x.by==='string'?x.by:''}:null}).filter(Boolean);
-      render();refreshPeople();
-    },()=>{});
-  }else canShare=false;
+/* ---------- Erinnerungen ---------- */
+const remOn=()=>ls.get('tagwerk_rem')==='1';
+async function toggleReminders(){
+  if(remOn()){ls.set('tagwerk_rem','0');render();return}
+  ls.set('tagwerk_rem','1');
   render();
+  if('Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch(e){}}
+  render();checkReminders();
 }
-init();
+async function notify(title,body){
+  toast(title+(body?' – '+body:''));
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  try{const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
+    if(reg&&reg.showNotification)await reg.showNotification(title,{body:body,icon:'icon-192.png',tag:title+body});
+    else new Notification(title,{body:body,icon:'icon-192.png'})}catch(e){}
+}
+function checkReminders(){
+  if(!remOn())return;
+  const now=new Date(),ms=now.getTime(),t=ymd(now);
+  let fired={};try{fired=JSON.parse(ls.get('tagwerk_fired')||'{}')||{}}catch(e){}
+  const yest=ymd(addDays(now,-1));Object.keys(fired).forEach(k=>{if(fired[k]<yest)delete fired[k]});
+  let dirty=false;
+  [0,1].forEach(off=>{const k=ymd(addDays(now,off));
+    S.events.forEach(e=>{if(e.remind===''||occStart(e,k)!==k)return;
+      const begin=new Date(k+'T'+(e.start||'09:00')+':00').getTime(),at=begin-e.remind*60000,key=e.id+'|'+k;
+      if(fired[key]||ms<at||ms>begin+15*60000)return;
+      fired[key]=k;dirty=true;
+      notify(e.title,(off?'Morgen':'Heute')+(e.start?' um '+e.start+' Uhr':', ganztägig'))})});
+  const due=S.todos.filter(x=>!x.done&&x.due===t);
+  if(due.length&&now.getHours()>=8&&!fired['todos|'+t]){fired['todos|'+t]=t;dirty=true;
+    notify(due.length===1?'Heute fällig: '+due[0].text:due.length+' Aufgaben sind heute fällig',due.length===1?'':due.slice(0,3).map(x=>x.text).join(', '))}
+  if(dirty)ls.set('tagwerk_fired',JSON.stringify(fired));
+}
+
+/* ---------- Start ---------- */
+window.addEventListener('storage',e=>{if(e.key&&e.key.indexOf('tagwerk_')===0){load();render()}});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;if(ui.view==='mehr')render()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();checkReminders()}});
+const h0=(location.hash||'').slice(1);if(VIEWS.includes(h0))ui.view=h0;
+load();resetHabitForm();resetEventForm();resetTodoForm();render();
+checkReminders();setInterval(checkReminders,30000);
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 </script>
 </body>
